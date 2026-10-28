@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WebOS One — Offline Desktop</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font:13px system-ui,sans-serif;color:#e8ecf3;background:#0a0e1c;user-select:none}
+#desk{position:fixed;left:0;right:0;top:0;bottom:48px;background:radial-gradient(circle at 25% 15%,#3d5a9e,#141b33 65%,#0a0e1c)}
+.icon{position:absolute;width:96px;padding:8px 4px;text-align:center;border-radius:10px;cursor:default;text-shadow:0 1px 3px #000}
+.icon:hover{background:rgba(255,255,255,.12)}
+.icon i{display:block;font-size:34px;font-style:normal;line-height:1.3}
+#hint{position:absolute;right:16px;bottom:12px;opacity:.5;font-size:12px}
+.win{position:absolute;display:flex;flex-direction:column;background:#151a28;border:1px solid #303a57;border-radius:10px;box-shadow:0 14px 40px #000a;overflow:hidden}
+.title{height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 10px;background:#222b44;cursor:grab}
+.title b{flex:1;font-weight:600}
+.x{width:16px;height:16px;border:0;border-radius:50%;background:#ff5f57;color:#600;font-size:10px;line-height:16px;padding:0;cursor:pointer}
+.body{position:relative;background:#000;flex:1;min-height:0}
+canvas{display:block}
+#bar{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;gap:6px;padding:0 8px;background:rgba(18,23,38,.95);border-top:1px solid #2b3550}
+.t{background:#2a3454;color:#e8ecf3;border:0;border-radius:7px;padding:7px 12px;font:inherit;cursor:pointer;white-space:nowrap}
+.t.on{background:#3d6cf0}
+#startBtn{background:#3d6cf0;font-weight:700}
+#tasks{flex:1;display:flex;gap:6px;overflow-x:auto}
+#clock{white-space:nowrap;opacity:.85}
+#menu{position:fixed;left:8px;bottom:56px;width:210px;padding:8px;background:#1a2138;border:1px solid #303a57;border-radius:12px;display:none;box-shadow:0 10px 30px #000a}
+#menu div{padding:9px 10px;border-radius:7px;cursor:pointer}
+#menu div:hover{background:#2a3454}
+.tools{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#1a2138;height:40px}
+.sw{width:24px;height:24px;border-radius:6px;border:2px solid transparent;cursor:pointer}
+.sw.on{border-color:#fff}
+.tools span{margin-left:auto;opacity:.6;font-size:12px}
+.app{height:100%;display:flex;flex-direction:column;background:#1c2130}
+.ofc{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 8px;background:#1a2138;border-bottom:1px solid #2b3550;min-height:40px}
+.ofc select{background:#2a3454;color:#e8ecf3;border:0;border-radius:7px;padding:6px;font:inherit}
+.cnt{opacity:.7;font-size:12px;margin-left:auto}
+.page{flex:1;overflow:auto;background:#fff;color:#111;margin:14px auto;width:min(680px,94%);padding:36px 44px;outline:none;font:16px Georgia,serif;box-shadow:0 4px 18px #0006}
+.grid{flex:1;overflow:auto}
+.grid table{border-collapse:collapse;font:13px system-ui}
+.grid th{background:#222b44;padding:3px 10px;font-weight:600;position:sticky;top:0;z-index:1}
+.grid th:first-child{position:sticky;left:0;z-index:2}
+.grid td{border:1px solid #2f3a58;padding:0}
+.grid input.c{width:96px;background:#fff;color:#111;border:0;padding:4px 6px;font:inherit;outline:none}
+.grid input.c:focus{outline:2px solid #3d6cf0}
+.addr{min-width:48px;background:#2a3454;padding:6px 8px;border-radius:6px}
+.fx{flex:1;min-width:200px;padding:6px 8px;border:0;border-radius:6px;background:#fff;color:#111;font:13px system-ui}
+.srow{flex:1;display:flex;min-height:0}
+.thumbs{width:150px;overflow:auto;background:#141a2a;padding:8px}
+.th{padding:8px;border-radius:6px;margin-bottom:6px;background:#222b44;font-size:12px;cursor:pointer}
+.th.on{outline:2px solid #3d6cf0}
+.stage{flex:1;display:flex;flex-direction:column;gap:10px;padding:16px}
+.ti{font:bold 24px system-ui;padding:8px 10px;background:#fff;color:#111;border:0;border-radius:6px}
+.tb{flex:1;font:18px system-ui;padding:12px;background:#fff;color:#111;border:0;border-radius:6px;resize:none}
+.pres{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;color:#111;padding:30px;text-align:center}
+.pres h1{font-size:44px;margin:0 0 16px}
+.pres p{font-size:22px;margin:0 0 30px}
+.pc{opacity:.5;font-size:13px}
+.calcout{flex:1;overflow:auto;padding:10px;font:14px monospace}
+:root{--kali:#367bf0}
+#desk{background:radial-gradient(circle at 75% 25%,#1b4a7a,#0b1620 55%,#05090e)}
+#bar{background:#0d1620;border-top:1px solid #1f3850}
+.win{background:#0c141d;border-color:#21476b}
+.title{background:#142234}
+.t{background:#183049}
+.t.on,#startBtn{background:#367bf0}
+#menu{background:#0d1a27;border-color:#21476b}
+#menu div:hover{background:#183049}
+.ofc,.tools{background:#0f1c2a}
+.fl{flex:1;overflow:auto;padding:6px;min-height:0}
+.frow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #1f3850}
+.fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fz{opacity:.6;font-size:12px;min-width:70px;text-align:right}
+.fprev{height:150px;overflow:auto;margin:0;padding:10px;background:#05090e;white-space:pre-wrap;font:12px monospace}
+.empty{opacity:.6;padding:12px}
+.vid{flex:1;width:100%;min-height:0;background:#000}
+.term{height:100%;overflow:auto;background:#05090e;color:#9be9a8;font:13px monospace;padding:10px;box-sizing:border-box}
+#to{white-space:pre-wrap}
+.tl{display:flex}
+.tp{color:#36a3ff}
+#ti{flex:1;background:transparent;border:0;color:inherit;font:inherit;outline:none}
+.slide{position:relative;flex:1;border-radius:6px;padding:28px 40px;display:flex;flex-direction:column;gap:14px;box-shadow:0 6px 24px #0008;min-height:0;overflow:hidden}
+.stt{font:bold 36px Georgia,serif;outline:none;min-height:1.2em}
+.sbd{font:20px Georgia,serif;outline:none;flex:1;white-space:pre-wrap}
+.pim{max-height:40%;align-self:center;border-radius:6px}
+.pimg{max-height:45%;max-width:80%;margin-top:16px;border-radius:6px}
+.pres.full{position:absolute;inset:0;z-index:5}
+.t:disabled{opacity:.4;cursor:default}
+
+/* Tizen-inspired polish and responsive desktop */
+html,body{font-family:Inter,system-ui,sans-serif;background:#07131e}
+#desk{background:
+ radial-gradient(ellipse at 72% 18%,rgba(29,190,205,.28),transparent 38%),
+ radial-gradient(ellipse at 18% 72%,rgba(42,104,220,.25),transparent 42%),
+ linear-gradient(135deg,#07131f 0%,#102d42 48%,#07121e 100%)}
+#desk:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(120deg,transparent 0 48%,#8be9f5 49%,transparent 50% 100%);background-size:140px 140px}
+.icon{width:104px;padding:10px 5px;border:1px solid transparent;transition:background .15s,border-color .15s,transform .15s}
+.icon:hover{background:rgba(255,255,255,.13);border-color:#78d8ef;transform:translateY(-2px)}
+.icon i{font-size:39px;filter:drop-shadow(0 4px 5px #0008)}
+.body:has(canvas){background:radial-gradient(ellipse at top,#234c4c,#0a1118 70%)}
+#bar{height:58px;padding:0 12px;gap:10px;background:rgba(5,14,23,.88);backdrop-filter:blur(22px);border-top:1px solid #ffffff20;box-shadow:0 -8px 28px #0003}
+#desk{bottom:58px}
+#startBtn{border-radius:12px;padding:10px 18px;background:linear-gradient(135deg,#00b8c8,#2874ee);box-shadow:0 4px 18px #00b8c833}
+.t{border:1px solid #ffffff0d;border-radius:10px;transition:background .15s}
+.t:hover{background:#28516d}
+.t.on{background:#146a91}
+#tasks{gap:8px}
+#clock{padding:8px 12px;border-radius:10px;background:#ffffff0b;font-weight:650;font-variant-numeric:tabular-nums}
+.win{border-radius:14px;border-color:#62cbe044;box-shadow:0 22px 65px #0009,0 0 0 1px #ffffff08;backdrop-filter:blur(16px)}
+.title{height:40px;background:linear-gradient(90deg,#15364a,#142536);padding:0 13px}
+.title b{letter-spacing:.15px}
+.x{width:19px;height:19px;line-height:19px}
+.body{overflow:hidden}
+.body canvas{max-width:100%;max-height:100%}
+#menu{bottom:66px;width:280px;max-height:70vh;overflow:auto;padding:10px;background:rgba(8,24,37,.96);backdrop-filter:blur(20px);border-color:#56d2e655}
+#menu div{padding:12px;border:1px solid transparent}
+#menu div:hover{border-color:#51c8dc55;background:#163b50}
+.ofc,.tools{background:#10283a;border-bottom:1px solid #ffffff13}
+.page{min-height:0;border-radius:5px;box-shadow:0 12px 32px #0002}
+.grid input.c{min-width:96px}
+@media(max-width:700px){.icon{width:78px;font-size:11px}.icon i{font-size:30px}#tasks .t{padding:7px;font-size:11px}.win{max-width:calc(100vw - 8px)}#clock{font-size:11px;padding:7px}}
+
+
+/* Game shells: original HTML builds run in large, resizable app windows. */
+.game-shell{height:100%;width:100%;min-height:0;display:flex;flex-direction:column;background:#03080d}
+.game-toolbar{height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 9px 5px 13px;background:linear-gradient(90deg,#0d2839,#0c1b29);border-bottom:1px solid #53ccdf30}
+.game-label{display:flex;align-items:center;gap:9px;min-width:0;overflow:hidden}.game-label strong{font-size:12px;letter-spacing:.6px;white-space:nowrap}.game-dot{height:8px;width:8px;border-radius:50%;background:#47e0b0;box-shadow:0 0 11px #47e0b088;flex:none}.game-help{opacity:.58;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.game-actions{display:flex;gap:5px;flex:none}.game-actions .t{padding:4px 10px;font-size:17px;line-height:20px;border-radius:8px}.game-frame{width:100%;height:0;min-height:0;flex:1;display:block;border:0;background:#05070b}
+/* A Tizen-inspired app library and productive Office landing screen. */
+#menu .menu-heading{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 12px;color:#e6fbff;font-weight:750;font-size:14px}
+#menu .menu-heading small{font-size:9px;letter-spacing:1.2px;color:#6ecddd;font-weight:700}
+#menu #appSearch{width:100%;height:38px;border:1px solid #5bafbd45;border-radius:10px;background:#071722;color:#e6faff;outline:none;padding:0 12px;font:inherit;margin:0 0 7px}
+#menu #appSearch:focus{border-color:#52d5e8;box-shadow:0 0 0 3px #52d5e820}
+#menu .menu-app{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#edfaff;cursor:pointer;font-size:12px}
+#menu .menu-icon{width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#ffffff0c;font-size:17px;flex:none}
+#menu .menu-arrow{margin-left:auto;color:#57cbdc;font-size:20px}
+#menu .menu-foot{font-size:10px;opacity:.48;padding:12px 10px 5px;border-top:1px solid #ffffff10;margin-top:6px}
+.office-home{padding:23px;gap:20px;background:radial-gradient(ellipse at top right,#183e4d 0%,transparent 45%),linear-gradient(140deg,#0c1e2b,#0a121b 75%);overflow:auto}
+.office-top{display:flex;align-items:center;gap:16px;padding:5px 0 8px}
+.office-mark{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;font-size:34px;color:white;background:linear-gradient(135deg,#00c7bb,#3377f5);box-shadow:0 12px 28px #009fa333;flex:none}
+.office-eyebrow{font-size:10px;color:#5ce0db;letter-spacing:2px;font-weight:800;margin-bottom:6px}
+.office-top h1{font-size:28px;letter-spacing:-.7px;margin:0 0 5px;color:#f1fbff}
+.office-top p{font-size:12px;line-height:1.55;color:#9fb9c7;margin:0;max-width:480px}
+.office-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;flex:1}
+.office-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:11px;min-width:0;padding:17px 15px;border:1px solid #ffffff14;border-radius:16px;background:#122637;color:#eaf8ff;cursor:pointer;font:inherit;transition:transform .16s,border-color .16s,background .16s}
+.office-card:hover{transform:translateY(-3px);border-color:#59d7e5aa;background:#173448}
+.office-card-icon{display:grid;place-items:center;width:45px;height:45px;border-radius:13px;font-size:24px;background:#1b5164}
+.office-card.writer .office-card-icon{background:linear-gradient(135deg,#2478d4,#554bd2)}.office-card.sheets .office-card-icon{background:linear-gradient(135deg,#15966c,#176b9d)}.office-card.slides .office-card-icon{background:linear-gradient(135deg,#c65a2a,#a33d6c)}
+.office-card-title{font-size:15px;font-weight:750}
+.office-card-desc{font-size:11px;line-height:1.65;color:#a7c0cd;flex:1}
+.office-nav{position:sticky;top:0;z-index:4}.office-card-action{font-size:11px;font-weight:750;color:#73e5e2;margin-top:3px}
+.office-bottom{display:flex;align-items:center;gap:8px;font-size:10px;color:#93b5c3;border-top:1px solid #ffffff12;padding-top:14px}
+.save-dot{width:7px;height:7px;border-radius:50%;background:#45e1a0;box-shadow:0 0 9px #45e1a088}.office-sep{color:#466775}
+#hint{padding:8px 12px;border:1px solid #d0fbff14;border-radius:12px;background:#05121c60;backdrop-filter:blur(10px)}
+#startBtn{min-width:100px}
+@media(max-width:760px){.game-help{display:none}.office-home{padding:15px;gap:14px}.office-top h1{font-size:22px}.office-mark{width:50px;height:50px;font-size:28px}.office-cards{grid-template-columns:1fr}.office-card{min-height:135px}.office-bottom{flex-wrap:wrap}#menu{left:6px;width:min(300px,calc(100vw - 12px))}.icon{width:84px}.icon i{font-size:31px}}
+
+
+/* Block Survival: quick-select hotbar, backpack and in-game guide */
+.bs-tutorial-panel{flex:0 0 auto;max-height:235px;overflow:auto;padding:10px 12px;background:linear-gradient(135deg,#102b3c,#0a1925);border-top:1px solid #67d9ee35;border-bottom:1px solid #67d9ee35;color:#d8eef6;font-size:10px;line-height:1.65}
+.bs-tutorial-panel[hidden]{display:none!important}
+.bs-tutorial-panel h3{margin:0 0 6px;color:#7fe7f2;font-size:12px;letter-spacing:.6px}
+.bs-tutorial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px 16px}
+.bs-tutorial-grid strong{color:#fff}
+.bs-help-button{flex:none;white-space:nowrap}
+
+.bs-play-controls{display:flex;align-items:stretch;gap:8px;padding:7px 9px;flex:0 0 auto;background:linear-gradient(90deg,#0b1b29,#10283a);border-top:1px solid #6bd7e51c;min-width:0}
+.bs-hotbar{display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;overflow-x:auto;padding:1px 1px 4px;scrollbar-width:thin;scrollbar-color:#33708a transparent}
+.bs-slot{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);grid-template-rows:1fr auto;align-items:center;justify-items:center;gap:0 4px;flex:0 0 91px;min-width:78px;height:58px;padding:5px 6px 4px;border:1px solid #ffffff22;border-radius:10px;background:#0b1c29;color:#e7f8ff;font:inherit;cursor:pointer;transition:background .12s,border-color .12s,transform .12s}
+.bs-slot:hover{background:#183a4e;border-color:#4bbad6}
+.bs-slot.selected{border:2px solid #70edff;background:linear-gradient(145deg,#19546c,#14344b);box-shadow:0 0 0 2px #00c5e51d,inset 0 0 16px #00c5e514;transform:translateY(-2px)}
+.bs-slot-key{position:absolute;left:5px;top:4px;font-size:9px;color:#83aebb;font-weight:800}
+.bs-slot-icon{grid-column:1;grid-row:1/3;font-size:23px;line-height:1;filter:drop-shadow(0 2px 3px #0007)}
+.bs-slot-name{grid-column:2;grid-row:1;align-self:end;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:750}
+.bs-slot-count{grid-column:2;grid-row:2;justify-self:end;align-self:start;color:#70edff;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}
+.bs-slot-count:before{content:'×';opacity:.65;margin-right:2px}
+.bs-inventory-toggle{flex:0 0 auto;min-width:116px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid #56cfe144;border-radius:10px;background:#122c3d;color:#e8fbff;padding:5px 10px;cursor:pointer;font:inherit;font-size:11px;font-weight:750}
+.bs-inventory-toggle:hover,.bs-inventory-toggle.on{background:#164a63;border-color:#70edff}
+.bs-inventory-toggle small{font-size:9px;color:#9cc8d5;font-weight:500}
+.bs-inventory-panel{flex:0 0 auto;max-height:285px;overflow:auto;padding:9px 10px;background:linear-gradient(135deg,#0d2030,#0a1722);border-top:1px solid #63d4ec24;border-bottom:1px solid #63d4ec24}
+.bs-inventory-heading{display:flex;align-items:center;gap:10px;margin-bottom:6px;min-width:0}
+.bs-inventory-heading strong,.bs-equipment-heading strong{font-size:12px;letter-spacing:.4px;color:#e9faff}
+.bs-inventory-heading span{color:#85a8b6;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bs-inventory-hint{font-size:10px;color:#9fc7d4;line-height:1.5;margin:0 0 8px}
+.bs-inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
+.bs-inventory-item{display:flex;align-items:center;gap:7px;min-width:0;padding:6px 8px;border:1px solid #ffffff12;border-radius:8px;background:#ffffff06;cursor:pointer;user-select:none;transition:background .12s,border-color .12s}
+.bs-inventory-item:hover,.bs-inventory-item:focus-visible{outline:none;border-color:#55d8f0;background:#153649}
+.bs-inventory-item.on-hotbar{border-color:#3a8295;background:#103141}
+.bs-inventory-item .bs-item-icon{font-size:17px;flex:none}
+.bs-inventory-item .bs-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#bfd7e1;font-size:10px}
+.bs-inventory-item .bs-item-count{flex:none;color:#70edff;font-weight:800;font-size:11px;font-variant-numeric:tabular-nums}
+.bs-equipment-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:9px;border-top:1px solid #ffffff18;margin-bottom:7px}
+.bs-equipment-heading span{font-size:9px;color:#83aebb}
+.bs-equipment-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:6px}
+.bs-equipment-item{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:7px;min-width:0;padding:7px;border:1px solid #ffffff14;border-radius:9px;background:#ffffff06}
+.bs-equipment-icon{font-size:20px}
+.bs-equipment-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
+.bs-equipment-name{font-size:10px;color:#e7f8ff;font-weight:700}
+.bs-equipment-status{font-size:9px;color:#8caebb}
+.bs-equipment-item button{padding:5px 7px;font-size:9px;white-space:nowrap}
+.bs-inventory-tools{margin-top:9px;padding-top:7px;border-top:1px solid #ffffff14;color:#b3d1dc;font-size:10px;display:flex;gap:14px;flex-wrap:wrap}
+.bs-craftbar{display:flex;align-items:center;gap:6px;flex:0 0 auto;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:7px 9px;background:#0c1e2c;border-top:1px solid #ffffff12;scrollbar-width:thin}
+.bs-craft-label{position:sticky;left:0;z-index:1;flex:none;font-size:10px;font-weight:800;letter-spacing:.7px;color:#78dff1;background:#0c1e2c;padding:3px 5px}
+.bs-craftbar .t{padding:7px 10px;font-size:10px}
+.bs-craftbar .t:disabled{filter:saturate(.4);opacity:.35}
+@media(max-height:720px){.bs-slot{height:50px;flex-basis:80px}.bs-inventory-panel{max-height:215px}.bs-play-controls{padding:5px 7px}.bs-inventory-toggle{min-width:95px}}
+@media(max-width:700px){.bs-slot{flex-basis:74px;min-width:74px}.bs-inventory-toggle{min-width:84px;padding:4px 7px}.bs-slot-name{font-size:9px}}
+
+</style>
+</head>
+<body>
+<div id="desk"><div id="hint">WebOS One · Offline mode · Games stored locally</div></div>
+<div id="menu"></div>
+<div id="bar"><button class="t" id="startBtn">◈ Apps</button><div id="tasks"></div><div id="clock"></div></div>
+<script>
+const $=s=>document.querySelector(s),desk=$('#desk'),tasks=$('#tasks'),menu=$('#menu');
+let zTop=10,focused=null;
+const open={};
+const APPS={
+ office:{name:'Office Suite',icon:'▦',w:1120,h:760,start:startOfficeHub},
+ calc:{name:'Calculator',icon:'🧮',w:400,h:330,start:startCalc},
+ term:{name:'Terminal',icon:'🖥️',w:700,h:460,start:startTerm},
+ files:{name:'Files',icon:'🗂️',w:760,h:520,start:startFiles},
+ video:{name:'Video Player',icon:'🎬',w:800,h:520,start:startVideo},
+ settings:{name:'Settings',icon:'⚙️',w:500,h:360,start:startSettings},
+ gemrunner:{name:'Gem Runner',icon:'💎',w:1100,h:670,start:startGemRunner},
+ survival:{name:'Block Survival',icon:'⛏️',w:1180,h:820,start:startSurvival}
+};
+
+/* ---------- window manager ---------- */
+function loop(rec,fn){const f=()=>{if(!rec.alive)return;fn();requestAnimationFrame(f)};f()}
+function launch(id){
+ if(open[id])return focusWin(open[id]);
+ const app=APPS[id],n=Object.keys(open).length,rec={id,keys:{},alive:true};
+ const el=document.createElement('div');
+ el.className='win';
+ const ww=Math.min(app.w,Math.max(360,innerWidth-24)),hh=Math.min(app.h+34,Math.max(260,innerHeight-72));
+  Object.assign(el.style,{width:ww+'px',height:hh+'px',left:Math.max(0,Math.min(innerWidth-ww-8,80+n*24))+'px',top:Math.max(0,Math.min(innerHeight-hh-62,28+n*22))+'px'});
+ el.innerHTML='<div class="title"><b></b><button class="x" title="Close">✕</button></div><div class="body"></div>';
+ el.querySelector('b').textContent=app.name;
+ const btn=document.createElement('button');
+ btn.className='t';btn.textContent=app.icon+' '+app.name;btn.onclick=()=>focusWin(rec);
+ Object.assign(rec,{el,btn});
+ desk.appendChild(el);tasks.appendChild(btn);open[id]=rec;
+ el.querySelector('.x').onclick=()=>closeWin(rec);
+ el.addEventListener('pointerdown',()=>focusWin(rec));
+ dragWin(el);
+ app.start(el.querySelector('.body'),rec);
+ focusWin(rec);
+}
+function focusWin(rec){
+ if(!rec.alive)return;
+ if(focused&&focused!==rec)focused.keys={};
+ document.activeElement?.blur();
+ focused=rec;rec.keys={};rec.el.style.zIndex=++zTop;
+ for(const k in open)open[k].btn.classList.toggle('on',open[k]===rec);
+}
+function closeWin(rec){if(typeof rec.onClose==='function'){try{rec.onClose()}catch(e){}}rec.alive=false;rec.el.remove();rec.btn.remove();delete open[rec.id];if(focused===rec)focused=null}
+function dragWin(el){
+ el.querySelector('.title').addEventListener('dblclick',()=>{if(el.dataset.max){el.style.left=el.dataset.l;el.style.top=el.dataset.t;el.style.width=el.dataset.w;el.style.height=el.dataset.h;el.dataset.max=''}else{el.dataset.l=el.style.left;el.dataset.t=el.style.top;el.dataset.w=el.style.width;el.dataset.h=el.style.height;el.dataset.max='1';el.style.left='0px';el.style.top='0px';el.style.width='100%';el.style.height='calc(100% - 58px)'}});
+el.querySelector('.title').addEventListener('pointerdown',e=>{
+  if(e.target.tagName==='BUTTON')return;
+  const dx=e.clientX-el.offsetLeft,dy=e.clientY-el.offsetTop;
+  const mv=ev=>{el.style.left=Math.max(0,ev.clientX-dx)+'px';el.style.top=Math.max(0,ev.clientY-dy)+'px'};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up)};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);
+ });
+}
+addEventListener('keydown',e=>{if(!focused)return;const t=e.target;if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)return;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();focused.keys[e.code]=true});
+addEventListener('keyup',e=>{if(focused)focused.keys[e.code]=false});
+
+/* desktop icons, start menu, clock */
+Object.entries(APPS).forEach(([id,a],i)=>{
+ const d=document.createElement('div');
+ d.className='icon';d.style.left=(20+Math.floor(i/4)*110)+'px';d.style.top=(20+(i%4)*104)+'px';
+ d.innerHTML='<i>'+a.icon+'</i>'+a.name;
+ d.ondblclick=()=>launch(id);
+ desk.appendChild(d);
+});
+menu.innerHTML='<div class="menu-heading"><span>App library</span><small>WEBOS ONE</small></div><input id="appSearch" type="search" placeholder="Search apps…" autocomplete="off"><div id="menuApps"></div><div class="menu-foot">Double-click a desktop icon to launch</div>';
+const menuApps=menu.querySelector('#menuApps');
+for(const id in APPS){const d=document.createElement('div');d.className='menu-app';d.dataset.name=APPS[id].name.toLowerCase();d.innerHTML='<span class="menu-icon">'+APPS[id].icon+'</span><span>'+APPS[id].name+'</span><span class="menu-arrow">›</span>';d.onclick=()=>{menu.style.display='none';launch(id)};menuApps.appendChild(d)}
+menu.querySelector('#appSearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();menuApps.querySelectorAll('.menu-app').forEach(d=>d.style.display=d.dataset.name.includes(q)?'flex':'none')});
+$('#startBtn').onclick=()=>{menu.style.display=menu.style.display==='block'?'none':'block';if(menu.style.display==='block'){const search=menu.querySelector('#appSearch');search.value='';menuApps.querySelectorAll('.menu-app').forEach(d=>d.style.display='flex');search.focus()}};
+addEventListener('pointerdown',e=>{if(!menu.contains(e.target)&&e.target.id!=='startBtn')menu.style.display='none'});
+function tick(){$('#clock').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'  ·  '+new Date().toLocaleDateString([],{month:'short',day:'numeric'})}
+tick();setInterval(tick,1000);
+
+
+/* ---------- Gem Runner (embedded game source, bundled into this WebOS file) ---------- */
+const GEM_RUNNER_HTML_B64 =
+  'PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj48aGVhZD48bWV0YSBjaGFyc2V0PSJVVEYtOCI+CjxtZXRhIG5hbWU9InZpZXdwb3J0IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsIGluaXRpYWwtc2NhbGU9MSwgdmlld3BvcnQtZml0PWNvdmVyIj4KPHRpdGxlPkdlbSBSdW5uZXI8L3RpdGxlPgoKPHN0eWxlPgo6cm9vdHtib3gtc2l6aW5nOmJvcmRlci1ib3g7Y29sb3Itc2NoZW1lOmRhcms7cGFkZGluZy10b3A6ZW52KHNhZmUtYXJlYS1pbnNldC10b3AsMHB4KTtwYWRkaW5nLWJvdHRvbTplbnYoc2FmZS1hcmVhLWluc2V0LWJvdHRvbSwwcHgpfQoqe2JveC1zaXppbmc6Ym9yZGVyLWJveDttYXJnaW46MDtwYWRkaW5nOjB9Cmh0bWwsYm9keXtoZWlnaHQ6MTAwJTtiYWNrZ3JvdW5kOiMwMDA7Y29sb3I6I2ZmZjtvdmVyZmxvdzpoaWRkZW47Zm9udC1mYW1pbHk6Q29uc29sYXMsTW9uYWNvLG1vbm9zcGFjZX0KYm9keXtkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2p1c3RpZnktY29udGVudDpjZW50ZXI7dG91Y2gtYWN0aW9uOm5vbmU7dXNlci1zZWxlY3Q6bm9uZTstd2Via2l0LXVzZXItc2VsZWN0Om5vbmV9CmNhbnZhc3t3aWR0aDptaW4oMTAwdncsY2FsYygxMDB2aCoxNi85KSk7YXNwZWN0LXJhdGlvOjE2Lzk7bWF4LWhlaWdodDoxMDAlO2JvcmRlci1yYWRpdXM6MTBweDtib3gtc2hhZG93OjAgMjBweCA1MHB4ICMwMDBhO2JhY2tncm91bmQ6IzAyODRjN30KI3Rje2Rpc3BsYXk6bm9uZTtwb3NpdGlvbjpmaXhlZDtsZWZ0OjA7cmlnaHQ6MDtib3R0b206Y2FsYygxMnB4ICsgZW52KHNhZmUtYXJlYS1pbnNldC1ib3R0b20sMHB4KSk7anVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47cGFkZGluZzowIDE0cHg7cG9pbnRlci1ldmVudHM6bm9uZX0KI3RjIGRpdntkaXNwbGF5OmZsZXg7Z2FwOjEycHg7cG9pbnRlci1ldmVudHM6YXV0b30KI3RjIGJ1dHRvbnt3aWR0aDo2NHB4O2hlaWdodDo2NHB4O2JvcmRlci1yYWRpdXM6NTAlO2JvcmRlcjoycHggc29saWQgI2ZmZjY7YmFja2dyb3VuZDojMGYxNzJhY2M7Y29sb3I6I2ZmZjtmb250LXNpemU6MjJweH0KQG1lZGlhIChwb2ludGVyOmNvYXJzZSl7I3Rje2Rpc3BsYXk6ZmxleH19Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPGNhbnZhcyBpZD0iYyIgd2lkdGg9Ijk2MCIgaGVpZ2h0PSI1NDAiPjwvY2FudmFzPgo8ZGl2IGlkPSJ0YyI+PGRpdj48YnV0dG9uIGRhdGEtaz0iS2V5QSI+4peAPC9idXR0b24+PGJ1dHRvbiBkYXRhLWs9IktleUQiPuKWtjwvYnV0dG9uPjwvZGl2PjxkaXY+PGJ1dHRvbiBkYXRhLWs9IktleUYiPvCflKU8L2J1dHRvbj48YnV0dG9uIGRhdGEtaz0iU3BhY2UiPuKWsjwvYnV0dG9uPjwvZGl2PjwvZGl2Pgo8c2NyaXB0Pgpjb25zdCBDPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdjJyksWD1DLmdldENvbnRleHQoJzJkJyx7YWxwaGE6ZmFsc2V9KSxXPTk2MCxIPTU0MCxUPTQwLEZQUz03MixCVz0xNjAsRT1bXSxybmQ9TWF0aC5yYW5kb207CmNvbnN0IEs9e30sSlVNUD1bJ0tleVcnLCdBcnJvd1VwJywnU3BhY2UnXTsKbGV0IHN0PSd0aXRsZScsbHY9MSxzY29yZT0wLGdlbXM9MCxocD0zLGJlc3Q9MCx0aWNrPTAsc3RUPTAsc2hha2U9MCxjYW1YPTAsY2xlYXJUPTAsYm9udXM9MCxsYXN0Rj0wLHRvYXN0PScnLHRvYXN0VD0wLG11dGVkPWZhbHNlLGpiPTAsY295PTAsdGw9MCxBQzsKdHJ5e2Jlc3Q9K2xvY2FsU3RvcmFnZS5nZXRJdGVtKCdncl9iZXN0Jyl8fDB9Y2F0Y2goZSl7fQpsZXQgYmxvY2tzPVtdLGNvbD1bXSxidW1waW5nPVtdLGJnRyxiZ0w9MCxlbmVtaWVzPVtdLGdlbUw9W10scGFydHM9W10sZmxvd2Vycz1bXSxmYnM9W10sZWZicz1bXSxwb3BzPVtdLGJvc3M9bnVsbCxtYXBXPTUwMDAsc2FmZT17eDoxMDAseTozNTB9Owpjb25zdCBnb2FsPXt4OjAseToxNjAsdzozMCxoOjMwMCxvbjp0cnVlfTsKY29uc3QgUD17eDoxMDAseTozNTAsdzozMixoOjQ2LHZ4OjAsdnk6MCxmYWNlOjEsYW5pbTowLGludjowLGJpZzpmYWxzZSxmaXJlOmZhbHNlLGdyb3VuZDpmYWxzZSxzcTowfTsKY29uc3QgUEFMPVtbJyMzOGJkZjgnLCcjZTBmMmZlJywnIzBlNzQ5MCddLFsnI2Y5NzMxNicsJyNmZGU2OGEnLCcjOWEzNDEyJ10sWycjNmQyOGQ5JywnI2YwYWJmYycsJyMzYjA3NjQnXSxbJyMwZjc2NmUnLCcjOTlmNmU0JywnIzEzNGU0YSddLFsnIzQ1MGEwYScsJyNmODcxNzEnLCcjMWMwYTBhJ11dOwpjb25zdCBMVj1bCnt3OjUyMDAsZ3g6NDgwMCxnOltbMCwxMjAwXSxbMTM2MCwyNjAwXSxbMjc1MCwzOTAwXSxbNDEwMCw1MjAwXV0scDpbWzQwMCwzODAsMiwyLCdwJ10sWzcwMCwzNDAsMiwzLCdwJ10sWzEwMDAsMzgwLDIsMiwncCddLFs1MjAsMjgwLDQsMSwnYiddLFsxODAwLDMyMCw1LDEsJ2InXSxbMzEwMCwzODAsMiwyLCdwJ11dLHE6W1s1NjAsMjgwXV0sbTpbWzU3MCwyMzBdLFsxODUwLDI3MF0sWzE5NTAsMjcwXSxbMzUwMCw0MDBdXSxlOltbNjAwLDQyMCwxLjhdLFsxNTAwLDQyMCwyXSxbMzMwMCw0MjAsMi4yXV19LAp7dzo2MDAwLGd4OjU2MDAsZzpbWzAsOTAwXSxbMTA4MCwyMTAwXSxbMjI4MCwzNDAwXSxbMzYwMCw0NzAwXSxbNDkwMCw2MDAwXV0scDpbWzMwMCwzODAsMiwyLCdwJ10sWzYwMCwzNDAsMiwzLCdwJ10sWzEyMDAsMzAwLDUsMSwnYiddLFszODAwLDM4MCwyLDIsJ3AnXSxbNDIwMCwyODAsNCwxLCdiJ11dLHE6W1sxMjgwLDMwMF1dLG06W1s2MTAsMjgwXSxbMTMwMCwyNTBdLFsyNjAwLDQwMF1dLGU6W1s3MDAsNDIwLDIuNV0sWzE0MDAsMjU1LDIuNV0sWzI1MDAsNDIwLDIuOF0sWzQ0MDAsNDIwLDIuOF1dfSwKe3c6NjQwMCxneDo2MDAwLGc6W1swLDQwMF0sWzU4MCwxNDAwXSxbMTYwMCwyNDAwXSxbMjYwMCwzNTAwXSxbMzcwMCw0NjAwXSxbNDgwMCw2NDAwXV0scDpbWzIyMCwzODAsMiwyLCdwJ10sWzMyMCwzNDAsMiwzLCdwJ10sWzYyMCwyNjAsNCwxLCdiJ10sWzI5MDAsMzQwLDIsMywncCddLFs0MTAwLDI2MCw1LDEsJ2InXV0scTpbWzY2MCwyNjBdXSxtOltbNjcwLDIxMF0sWzE4MDAsNDAwXSxbNDAwMCw0MDBdXSxlOltbOTAwLDQyMCwzXSxbMTkwMCw0MjAsMy4yXSxbMzAwMCw0MjAsMy40XV19LAp7dzo3NTAwLGd4OjcxMDAsZzpbWzAsNjAwXSxbODAwLDE1MDBdLFsxNzAwLDI1MDBdLFsyNzAwLDM1MDBdLFszNzAwLDQ1MDBdLFs0NzAwLDU1MDBdLFs1NzAwLDc1MDBdXSxwOltbMzAwLDM4MCwyLDIsJ3AnXSxbNTAwLDM0MCwyLDMsJ3AnXSxbMTAwMCwyODAsNSwxLCdiJ10sWzI5MDAsMzYwLDMsMSwnYiddLFs0MDAwLDMwMCw0LDEsJ2InXV0scTpbWzEwODAsMjgwXV0sbTpbWzUxMCwyODBdLFsyMDAwLDQwMF0sWzQwMDAsNDAwXV0sZTpbWzkwMCw0MjAsMy41XSxbMTEwMCwyMzUsMy44XSxbMjAwMCw0MjAsNF0sWzM5MDAsNDIwLDQuMl1dfSwKe3c6NzAwMCxneDo2NTAwLGJvc3M6MSxnOltbMCwxMjAwXSxbMTQwMCwyNjAwXSxbMjgwMCw2ODAwXV0scDpbWzUwMCwzODAsMiwyLCdwJ10sWzgwMCwyNjAsNCwxLCdiJ11dLHE6W1s4NDAsMjYwXV0sbTpbWzg1MCwyMDBdLFsyMDAwLDQwMF0sWzMyMDAsNDAwXV0sZTpbWzYwMCw0MjAsMy41XSxbMTgwMCw0MjAsNF1dfV07CgovLyAtLS0tLS0tLS0tIGF1ZGlvIC0tLS0tLS0tLS0KZnVuY3Rpb24gc2Z4KGYsZD0uMSx0PSdzcXVhcmUnLHY9LjA1LHM9MCl7aWYobXV0ZWQpcmV0dXJuO3RyeXtBQz1BQ3x8bmV3KHdpbmRvdy5BdWRpb0NvbnRleHR8fHdpbmRvdy53ZWJraXRBdWRpb0NvbnRleHQpKCk7Y29uc3Qgbj1BQy5jdXJyZW50VGltZSxvPUFDLmNyZWF0ZU9zY2lsbGF0b3IoKSxnPUFDLmNyZWF0ZUdhaW4oKTtvLnR5cGU9dDtvLmZyZXF1ZW5jeS5zZXRWYWx1ZUF0VGltZShmLG4pO2lmKHMpby5mcmVxdWVuY3kuZXhwb25lbnRpYWxSYW1wVG9WYWx1ZUF0VGltZShzLG4rZCk7Zy5nYWluLnNldFZhbHVlQXRUaW1lKHYsbik7Zy5nYWluLmV4cG9uZW50aWFsUmFtcFRvVmFsdWVBdFRpbWUoLjAwMSxuK2QpO28uY29ubmVjdChnKTtnLmNvbm5lY3QoQUMuZGVzdGluYXRpb24pO28uc3RhcnQoKTtvLnN0b3AobitkKX1jYXRjaChlKXt9fQoKLy8gLS0tLS0tLS0tLSBoZWxwZXJzIC0tLS0tLS0tLS0KY29uc3QgaGl0PShhLGIpPT5hLng8Yi54K2IudyYmYS54K2Eudz5iLngmJmEueTxiLnkrYi5oJiZhLnkrYS5oPmIueTsKZnVuY3Rpb24gc29saWRBdCh4LHkpe2NvbnN0IGw9Y29sW01hdGguZmxvb3IoeC9CVyldO2lmKGwpZm9yKGxldCBpPTA7aTxsLmxlbmd0aDtpKyspe2NvbnN0IGI9bFtpXTtpZih4Pj1iLngmJng8Yi54K2IudyYmeT49Yi55JiZ5PGIueStiLmgpcmV0dXJuIHRydWV9cmV0dXJuIGZhbHNlfQpjb25zdCBzYXk9dD0+e3RvYXN0PXQ7dG9hc3RUPTE1MH07CmZ1bmN0aW9uIGJ1cnN0KHgseSxjLG49OCl7aWYocGFydHMubGVuZ3RoPjI1MClyZXR1cm47Zm9yKGxldCBpPTA7aTxuO2krKylwYXJ0cy5wdXNoKHt4LHksdng6KHJuZCgpLS41KSo2LHZ5OihybmQoKS0uNSkqNi0yLHM6cm5kKCkqNCsyLGMsbDoyNX0pfQpjb25zdCBwb3A9KHgseSx0LGM9JyNmZmYnKT0+cG9wcy5wdXNoKHt4LHksdCxjLGw6NDV9KTsKZnVuY3Rpb24gbW92ZVgoZSxkeCl7ZS54Kz1keDtjb25zdCBhPU1hdGguZmxvb3IoKGUueC00KS9CVyksej1NYXRoLmZsb29yKChlLngrZS53KzQpL0JXKTtmb3IobGV0IGM9YTtjPD16O2MrKyl7Y29uc3QgbD1jb2xbY107aWYobClmb3IobGV0IGk9MDtpPGwubGVuZ3RoO2krKyl7Y29uc3QgYj1sW2ldO2lmKGhpdChlLGIpKXtlLng9ZHg+MD9iLngtZS53OmIueCtiLnc7cmV0dXJuIHRydWV9fX1yZXR1cm4gZmFsc2V9CmZ1bmN0aW9uIG1vdmVZKGUsZHkpe2UueSs9ZHk7bGV0IHI9MDtjb25zdCBhPU1hdGguZmxvb3IoKGUueC00KS9CVyksej1NYXRoLmZsb29yKChlLngrZS53KzQpL0JXKTtmb3IobGV0IGM9YTtjPD16O2MrKyl7Y29uc3QgbD1jb2xbY107aWYobClmb3IobGV0IGk9MDtpPGwubGVuZ3RoO2krKyl7Y29uc3QgYj1sW2ldO2lmKGhpdChlLGIpKXtpZihkeT4wKXtlLnk9Yi55LWUuaDtyPTF9ZWxzZSBpZihkeTwwKXtlLnk9Yi55K2IuaDtyPS0xO2lmKGU9PT1QKWJ1bXAoYil9fX19aWYocillLnZ5PTA7cmV0dXJuIHJ9CmZ1bmN0aW9uIGJ1bXAoYil7aWYoIWIuYnVtcClidW1waW5nLnB1c2goYik7Yi5idW1wPTEwO2lmKGIudD09PSdxJyl7Yi50PSd1JztzY29yZSs9MjAwO2Zsb3dlcnMucHVzaCh7eDpiLngrOCx5OmIueS0yOCx3OjI0LGg6MjQsb246dHJ1ZX0pO2J1cnN0KGIueCsyMCxiLnksJyNmZjhhMDAnLDEyKTtzZngoNzAwLC4xMiwndHJpYW5nbGUnLC4wNiwxMTAwKX1lbHNlIHNmeCgxNTAsLjA2LCdzcXVhcmUnLC4wNCl9CmZ1bmN0aW9uIHNldFNpemUoYmlnKXtjb25zdCBoPWJpZz81NDo0NjtQLnkrPVAuaC1oO1AuaD1oO1Audz1iaWc/Mzg6MzI7UC5iaWc9YmlnfQoKLy8gLS0tLS0tLS0tLSBsZXZlbCAtLS0tLS0tLS0tCmZ1bmN0aW9uIGJ1aWxkKG4pewogY29uc3QgTD1MVltuLTFdLE09bmV3IE1hcCgpOwogYmxvY2tzPVtdO2VuZW1pZXM9W107Z2VtTD1bXTtmbG93ZXJzPVtdO2Zicz1bXTtlZmJzPVtdO3BhcnRzPVtdO3BvcHM9W107Ym9zcz1udWxsO2NsZWFyVD0wOwogbWFwVz1MLnc7Z29hbC54PUwuZ3g7Z29hbC5vbj10cnVlO3RsPTEyMCpGUFM7CiBjb25zdCBhZGQ9KHgseSx0KT0+TS5zZXQoeCsnLCcreSx7eCx5LHc6VCxoOlQsdCxidW1wOjB9KTsKIEwuZy5mb3JFYWNoKChbYSxiXSk9Pntmb3IobGV0IHg9YTt4PGI7eCs9VCl7YWRkKHgsNDYwLCdnJyk7YWRkKHgsNTAwLCdnJyl9fSk7CiBMLnAuZm9yRWFjaCgoW3gseSxjLHIsdF0pPT57Zm9yKGxldCBqPTA7ajxNYXRoLm1pbihyLDMpO2orKylmb3IobGV0IGk9MDtpPGM7aSsrKWFkZCh4K2kqVCx5K2oqVCx0KX0pOwogTC5xLmZvckVhY2goKFt4LHldKT0+YWRkKHgseSwncScpKTsKIGJsb2Nrcz1bLi4uTS52YWx1ZXMoKV07Y29sPVtdO2J1bXBpbmcubGVuZ3RoPTA7Zm9yKGNvbnN0IGIgb2YgYmxvY2tzKXtjb25zdCBjPU1hdGguZmxvb3IoYi54L0JXKTsoY29sW2NdfHwoY29sW2NdPVtdKSkucHVzaChiKX0KIEwubS5mb3JFYWNoKChbeCx5XSk9PmdlbUwucHVzaCh7eCx5LG9uOnRydWV9KSk7CiBMLmUuZm9yRWFjaCgoW3gseSxzXSk9PmVuZW1pZXMucHVzaCh7eCx5LHc6MzIsaDozMix2eDpzLHZ5OjAsYW46MCxvbjp0cnVlLGdyOmZhbHNlfSkpOwogaWYoTC5ib3NzKWJvc3M9e3g6NTIwMCx5OjM3MCx3OjgwLGg6OTAsdng6LTIuNSxocDo4LG1heDo4LHQ6MCxodXJ0OjAsb246dHJ1ZX07CiBPYmplY3QuYXNzaWduKFAse3g6MTAwLHk6MzUwLHZ4OjAsdnk6MCxpbnY6MH0pO3NhZmU9e3g6MTAwLHk6MzUwfTtjYW1YPTA7Cn0KZnVuY3Rpb24gc3RhcnRHYW1lKCl7bHY9MTtzY29yZT0wO2dlbXM9MDtocD0zO1AuZmlyZT1mYWxzZTtQLnc9MzI7UC5oPTQ2O1AuYmlnPWZhbHNlO2J1aWxkKDEpO3N0PSdwbGF5JztzdFQ9MDtmb3IoY29uc3QgayBpbiBLKUtba109ZmFsc2V9CmZ1bmN0aW9uIGVuZFJ1bihzKXtzdD1zO3N0VD0wO2lmKHNjb3JlPmJlc3Qpe2Jlc3Q9c2NvcmU7dHJ5e2xvY2FsU3RvcmFnZS5zZXRJdGVtKCdncl9iZXN0JyxiZXN0KX1jYXRjaChlKXt9fX0KZnVuY3Rpb24gbmV4dExldmVsKCl7aWYobHY+PTUpe2VuZFJ1bignd2luJyk7cmV0dXJufWx2Kys7YnVpbGQobHYpfQoKLy8gLS0tLS0tLS0tLSBhY3Rpb25zIC0tLS0tLS0tLS0KZnVuY3Rpb24gc2hvb3QoKXtpZihmYnMuZmlsdGVyKGY9PmYub24pLmxlbmd0aD49NClyZXR1cm47ZmJzLnB1c2goe3g6UC54KyhQLmZhY2U+MD9QLnc6LTEyKSx5OlAueSsxNCx3OjEyLGg6MTIsdng6UC5mYWNlKjgsdnk6Mixvbjp0cnVlLGxpZmU6MTIwfSk7YnVyc3QoUC54KyhQLmZhY2U+MD9QLnc6MCksUC55KzE2LCcjZmY0NTAwJyw1KTtzZngoMzIwLC4xMiwnc2F3dG9vdGgnLC4wNCwxMjApfQpmdW5jdGlvbiBmaXJlS2V5KCl7aWYoc3QhPT0ncGxheScpcmV0dXJuO2lmKCFQLmZpcmUpe2lmKHRvYXN0VDw9MClzYXkoJ0ZJTkQgQSBGSVJFIEZMT1dFUiBPUiA2IEdFTVMnKTtyZXR1cm59Y29uc3Qgbj1wZXJmb3JtYW5jZS5ub3coKTtpZihuLWxhc3RGPDM1MCl7c2hvb3QoKTtsYXN0Rj0wfWVsc2UgbGFzdEY9bn0KZnVuY3Rpb24gZ2l2ZUZpcmUoKXtpZighUC5iaWcpc2V0U2l6ZSh0cnVlKTtQLmZpcmU9dHJ1ZTtidXJzdChQLngrUC53LzIsUC55K1AuaC8yLCcjZmY0NTAwJywyMik7c2Z4KDUwMCwuMywndHJpYW5nbGUnLC4wNywxMjAwKTtzYXkoJ0ZJUkUgUE9XRVI6IERPVUJMRS1UQVAgRicpfQpmdW5jdGlvbiBodXJ0KHBpdCl7CiBpZighcGl0JiZQLmludj4wKXJldHVybjsKIHNmeCgxMjAsLjMsJ3Nhd3Rvb3RoJywuMDcsNTApO3NoYWtlPTEyO2J1cnN0KFAueCtQLncvMixQLnkrUC5oLzIsJyNlZjQ0NDQnLDE0KTsKIGlmKCFwaXQmJihQLmZpcmV8fFAuYmlnKSl7UC5maXJlPWZhbHNlO2lmKFAuYmlnKXNldFNpemUoZmFsc2UpO1AuaW52PTEwMDtyZXR1cm59CiBocC0tOwogaWYoaHA8PTApe2VuZFJ1bignb3ZlcicpO3JldHVybn0KIGlmKHBpdCl7UC54PXNhZmUueDtQLnk9c2FmZS55LTY7UC52eD1QLnZ5PTB9ZWxzZXtQLnZ5PS04O1Audng9LVAuZmFjZSo2fQogUC5pbnY9MTEwOwp9CgovLyAtLS0tLS0tLS0tIHVwZGF0ZSAtLS0tLS0tLS0tCmZ1bmN0aW9uIHN0ZXAoKXsKIHRpY2srKztzdFQrKztpZih0b2FzdFQ+MCl0b2FzdFQtLTsKIGlmKHNoYWtlPjApe3NoYWtlKj0uODU7aWYoc2hha2U8LjMpc2hha2U9MH0KIGxldCBuPTA7Zm9yKGNvbnN0IHAgb2YgcGFydHMpe3AueCs9cC52eDtwLnkrPXAudnk7cC52eSs9LjI7aWYoLS1wLmw+MClwYXJ0c1tuKytdPXB9cGFydHMubGVuZ3RoPW47CiBuPTA7Zm9yKGNvbnN0IHAgb2YgcG9wcyl7cC55LT0uNztpZigtLXAubD4wKXBvcHNbbisrXT1wfXBvcHMubGVuZ3RoPW47CiBpZihzdCE9PSdwbGF5JylyZXR1cm47CiBmb3IobGV0IGk9YnVtcGluZy5sZW5ndGgtMTtpPj0wO2ktLSlpZigtLWJ1bXBpbmdbaV0uYnVtcDw9MClidW1waW5nLnNwbGljZShpLDEpOwogaWYoY2xlYXJUPjApe2lmKC0tY2xlYXJUPT09MCluZXh0TGV2ZWwoKTtyZXR1cm59CiB0bD1NYXRoLm1heCgwLHRsLTEpOwogLy8gcGxheWVyCiBjb25zdCBMPUsuS2V5QXx8Sy5BcnJvd0xlZnQsUj1LLktleUR8fEsuQXJyb3dSaWdodCxKPUsuS2V5V3x8Sy5BcnJvd1VwfHxLLlNwYWNlLGFjYz1QLmdyb3VuZD8xLjE6Ljc7CiBpZihMJiYhUil7UC52eD1NYXRoLm1heChQLnZ4LWFjYywtNi44KTtQLmZhY2U9LTF9CiBlbHNlIGlmKFImJiFMKXtQLnZ4PU1hdGgubWluKFAudngrYWNjLDYuOCk7UC5mYWNlPTF9CiBlbHNle1AudngqPVAuZ3JvdW5kPy43ODouOTI7aWYoTWF0aC5hYnMoUC52eCk8LjEpUC52eD0wfQogUC5hbmltKz1NYXRoLmFicyhQLnZ4KSouMDU7CiBjb3k9UC5ncm91bmQ/Nzpjb3ktMTtqYi0tOwogaWYoamI+MCYmY295PjApe1Audnk9LTE0LjI7Y295PTA7amI9MDtQLmdyb3VuZD1mYWxzZTtQLnNxPS0uMTU7c2Z4KDUyMCwuMTUsJ3NxdWFyZScsLjA1LDkwMCk7YnVyc3QoUC54K1Audy8yLFAueStQLmgsJyNmZmYnLDYpfQogaWYoIUomJlAudnk8LTUpUC52eSo9Ljg1OwogUC52eT1NYXRoLm1pbihQLnZ5Ky42NSwxNik7CiBpZihtb3ZlWChQLFAudngpKVAudng9MDsKIFAueD1NYXRoLm1heCgwLE1hdGgubWluKG1hcFctUC53LFAueCkpOwogY29uc3QgZmFsbD1QLnZ5LHdhcz1QLmdyb3VuZDsKIFAuZ3JvdW5kPW1vdmVZKFAsUC52eSk+MDsKIGlmKFAuZ3JvdW5kJiYhd2FzJiZmYWxsPjgpUC5zcT0uMTg7CiBQLnNxKj0uODI7CiBpZihQLmdyb3VuZCYmc29saWRBdChQLngtMixQLnkrUC5oKzIpJiZzb2xpZEF0KFAueCtQLncrMixQLnkrUC5oKzIpKXNhZmU9e3g6UC54LHk6UC55fTsKIGlmKFAueT5IKzgwKWh1cnQodHJ1ZSk7CiBpZihQLmludj4wKVAuaW52LS07CiAvLyBmbG93ZXJzICYgZ2VtcwogZm9yKGNvbnN0IGYgb2YgZmxvd2VycylpZihmLm9uJiZoaXQoUCxmKSl7Zi5vbj1mYWxzZTtzY29yZSs9NTAwO2dpdmVGaXJlKCk7cG9wKGYueCxmLnksJys1MDAnLCcjZmY4YTAwJyl9CiBmb3IoY29uc3QgZyBvZiBnZW1MKWlmKGcub24mJmhpdChQLHt4OmcueCx5OmcueSx3OjIwLGg6MjB9KSl7CiAgZy5vbj1mYWxzZTtnZW1zKys7c2NvcmUrPTEwMDtidXJzdChnLngrMTAsZy55KzEwLCcjMzhiZGY4Jyw4KTtzZngoOTAwK2dlbXMqNDAsLjEsJ3RyaWFuZ2xlJywuMDUpO3BvcChnLngsZy55LCcrMTAwJywnIzM4YmRmOCcpOwogIGlmKGdlbXM+PTMmJiFQLmJpZylzZXRTaXplKHRydWUpOwogIGlmKGdlbXM9PT02KWdpdmVGaXJlKCk7CiB9CiAvLyBmaXJlYmFsbHMKIGZvcihjb25zdCBmIG9mIGZicyl7aWYoIWYub24pY29udGludWU7aWYoLS1mLmxpZmU8PTApZi5vbj1mYWxzZTsKICBpZihtb3ZlWChmLGYudngpKWYub249ZmFsc2U7Zi52eSs9LjQ7Y29uc3Qgcj1tb3ZlWShmLGYudnkpO2lmKHI+MClmLnZ5PS01O2Vsc2UgaWYocjwwKWYub249ZmFsc2U7CiAgZm9yKGNvbnN0IGUgb2YgZW5lbWllcylpZihlLm9uJiZmLm9uJiZoaXQoZixlKSl7ZS5vbj1mLm9uPWZhbHNlO3Njb3JlKz00MDA7YnVyc3QoZS54KzE2LGUueSsxNiwnI2ZmNDUwMCcsMTQpO3NmeCgyMDAsLjE1LCdzcXVhcmUnLC4wNSw4MCk7cG9wKGUueCxlLnksJys0MDAnLCcjZmY0NTAwJyl9CiAgaWYoYm9zcyYmYm9zcy5vbiYmZi5vbiYmaGl0KGYsYm9zcykpe2Yub249ZmFsc2U7aGl0Qm9zcygpfQogfQogZmJzPWZicy5maWx0ZXIoZj0+Zi5vbik7CiAvLyBlbmVtaWVzCiBmb3IoY29uc3QgZSBvZiBlbmVtaWVzKXsKICBpZighZS5vbnx8TWF0aC5hYnMoZS54LVAueCk+MTAwMCljb250aW51ZTsKICBlLmFuKz0uMTU7ZS52eT1NYXRoLm1pbihlLnZ5Ky42NSwxNCk7CiAgaWYobW92ZVgoZSxlLnZ4KXx8KGUuZ3ImJiFzb2xpZEF0KGUudng+MD9lLngrZS53KzI6ZS54LTIsZS55K2UuaCs0KSkpZS52eCo9LTE7CiAgZS5ncj1tb3ZlWShlLGUudnkpPjA7CiAgaWYoZS55PkgrMTAwKWUub249ZmFsc2U7CiAgaWYoaGl0KFAsZSkpewogICBpZihQLnZ5PjAmJlAueStQLmgtUC52eTw9ZS55KzE0KXtlLm9uPWZhbHNlO1Audnk9Sj8tMTM6LTk7c2NvcmUrPTMwMDtidXJzdChlLngrMTYsZS55KzE2LCcjZWY0NDQ0JywxMik7c2Z4KDI2MCwuMTIsJ3NxdWFyZScsLjA2LDUyMCk7cG9wKGUueCxlLnksJyszMDAnLCcjZmNhNWE1Jyl9CiAgIGVsc2UgaHVydCgpOwogIH0KIH0KIC8vIGJvc3MKIGlmKGJvc3MmJmJvc3Mub24pewogIGNvbnN0IHBoPTEtYm9zcy5ocC9ib3NzLm1heDsKICBib3NzLngrPWJvc3Mudng+MD8yLjUrcGgqMjotKDIuNStwaCoyKTsKICBpZihib3NzLng8PTQ1MDApe2Jvc3MueD00NTAwO2Jvc3Mudng9MX1pZihib3NzLngrYm9zcy53Pj02MDAwKXtib3NzLng9NjAwMC1ib3NzLnc7Ym9zcy52eD0tMX0KICBpZihib3NzLmh1cnQ+MClib3NzLmh1cnQtLTsKICBpZigrK2Jvc3MudCVNYXRoLnJvdW5kKDExMC1waCo1MCk9PT0wKWVmYnMucHVzaCh7eDpib3NzLngrKGJvc3Mudng8MD8tMTU6Ym9zcy53KSx5OmJvc3MueSsyMCsocm5kKCk8LjQ/NDA6MCksdzoxNixoOjE2LHZ4Oihib3NzLnZ4PDA/LTE6MSkqKDYrcGgqMiksb246dHJ1ZX0pOwogIGlmKGhpdChQLGJvc3MpKXsKICAgaWYoUC52eT4wJiZQLnkrUC5oLVAudnk8PWJvc3MueSsyMCl7aGl0Qm9zcygpO1Audnk9LTEyfWVsc2UgaHVydCgpOwogIH0KIH0KIGZvcihjb25zdCBmIG9mIGVmYnMpe2YueCs9Zi52eDtpZihoaXQoUCxmKSl7Zi5vbj1mYWxzZTtodXJ0KCl9aWYoTWF0aC5hYnMoZi54LVAueCk+ODAwKWYub249ZmFsc2V9CiBlZmJzPWVmYnMuZmlsdGVyKGY9PmYub24pOwogLy8gZ29hbAogaWYoZ29hbC5vbiYmaGl0KFAsZ29hbCkpewogIGlmKGJvc3MmJmJvc3Mub24pe2lmKHRvYXN0VDw9MClzYXkoJ0RFRkVBVCBUSEUgQk9TUyBGSVJTVCEnKX0KICBlbHNle2dvYWwub249ZmFsc2U7Y2xlYXJUPTE1MDtib251cz1NYXRoLmZsb29yKHRsL0ZQUykqMTA7c2NvcmUrPTEwMDAqbHYrYm9udXM7YnVyc3QoZ29hbC54KzE1LGdvYWwueSsxNTAsJyMyMmM1NWUnLDMwKTtzZngoNjYwLC40LCd0cmlhbmdsZScsLjA3LDEzMjApfQogfQogY29uc3QgdHg9TWF0aC5tYXgoMCxNYXRoLm1pbihtYXBXLVcsUC54LVcvMytQLnZ4KjEyKSk7Y2FtWCs9KHR4LWNhbVgpKi4xMjsKfQpmdW5jdGlvbiBoaXRCb3NzKCl7CiBpZihib3NzLmh1cnQ+MClyZXR1cm47CiBib3NzLmhwLS07Ym9zcy5odXJ0PTQwO3NoYWtlPTg7YnVyc3QoYm9zcy54KzQwLGJvc3MueSsyMCwnI2VmNDQ0NCcsMTgpO3NmeCgxMDAsLjI1LCdzYXd0b290aCcsLjA3LDYwKTsKIGlmKGJvc3MuaHA8PTApe2Jvc3Mub249ZmFsc2U7c2NvcmUrPTMwMDA7c2hha2U9MTg7YnVyc3QoYm9zcy54KzQwLGJvc3MueSs0NSwnI2ZmNDUwMCcsNDUpO2VmYnM9W107c2F5KCdCT1NTIERFRkVBVEVEISBSRUFDSCBUSEUgRkxBRycpO3BvcChib3NzLngsYm9zcy55LCcrMzAwMCcsJyNmYmJmMjQnKX0KfQoKLy8gLS0tLS0tLS0tLSBkcmF3aW5nIC0tLS0tLS0tLS0KZnVuY3Rpb24gdHh0KHMseCx5LHN6LGM9JyNmZmYnLGE9J2NlbnRlcicpe1guZm9udD1zeisncHggIlByZXNzIFN0YXJ0IDJQIixtb25vc3BhY2UnO1gudGV4dEFsaWduPWE7WC50ZXh0QmFzZWxpbmU9J21pZGRsZSc7WC5maWxsU3R5bGU9YztYLmZpbGxUZXh0KHMseCx5KX0KZnVuY3Rpb24gcGlsbCh4LHkscyxjKXtYLmZvbnQ9JzExcHggIlByZXNzIFN0YXJ0IDJQIixtb25vc3BhY2UnO2NvbnN0IHc9WC5tZWFzdXJlVGV4dChzKS53aWR0aCsyMDtYLmZpbGxTdHlsZT0nIzBmMTcyYWJmJztYLmJlZ2luUGF0aCgpO1gucm91bmRSZWN0KHgseSx3LDI4LDE0KTtYLmZpbGwoKTtYLnN0cm9rZVN0eWxlPScjZmZmZmZmMjYnO1guc3Ryb2tlKCk7dHh0KHMseCsxMCx5KzE1LDExLGN8fCcjZmZmJywnbGVmdCcpO3JldHVybiB3Kzh9CmZ1bmN0aW9uIGRyYXdCZygpewogY29uc3QgcGFsPVBBTFtsdi0xXTtpZihiZ0whPT1sdil7YmdMPWx2O2JnRz1YLmNyZWF0ZUxpbmVhckdyYWRpZW50KDAsMCwwLEgpO2JnRy5hZGRDb2xvclN0b3AoMCxwYWxbMF0pO2JnRy5hZGRDb2xvclN0b3AoMSxwYWxbMV0pfVguZmlsbFN0eWxlPWJnRztYLmZpbGxSZWN0KDAsMCxXLEgpOwogWC5maWxsU3R5bGU9JyNmZmZmZmYzOCc7CiBmb3IobGV0IGk9MDtpPDc7aSsrKXtjb25zdCBjeD0oKChpKjMzMC1jYW1YKi4zNSklMjMxMCkrMjMxMCklMjMxMC0yMDAsY3k9NjArKGkqNTMlMTEwKTtYLmJlZ2luUGF0aCgpO1guYXJjKGN4LGN5LDM0LDAsNyk7WC5hcmMoY3grNDAsY3ktMTQsNDQsMCw3KTtYLmFyYyhjeCs4NCxjeSwzNCwwLDcpO1guZmlsbCgpfQogZm9yKGxldCBsPTA7bDwyO2wrKyl7WC5maWxsU3R5bGU9cGFsWzJdKyhsPycnOic4OCcpO1guYmVnaW5QYXRoKCk7WC5tb3ZlVG8oMCxIKTtjb25zdCBrPWNhbVgqKC4yK2wqLjIpOwogIGZvcihsZXQgeD0wO3g8PVc7eCs9MjQpWC5saW5lVG8oeCwzMzArbCo1MCtNYXRoLnNpbigoeCtrKS8oMTIwLWwqMzApKSozNStNYXRoLnNpbigoeCtrKS80NykqMTApO1gubGluZVRvKFcsSCk7WC5maWxsKCl9Cn0KZnVuY3Rpb24gZHJhd1BsYXllcigpewogaWYoUC5pbnY+MCYmUC5pbnYlNjwzKXJldHVybjsKIGNvbnN0IGI9UC5iaWcsZj1QLmZpcmU7WC5zYXZlKCk7WC50cmFuc2xhdGUoUC54K1Audy8yLFAueStQLmgpO1guc2NhbGUoUC5mYWNlKigxK1Auc3EpLDEtUC5zcSk7WC50cmFuc2xhdGUoMCwtUC5oLzIpOwogY29uc3Qgc3c9UC5ncm91bmQ/TWF0aC5zaW4oUC5hbmltKSoxMDoxMjsKIFguZmlsbFN0eWxlPWY/JyNkYzI2MjYnOicjMWUzYThhJztYLmZpbGxSZWN0KC0xMitzdyxiPzEwOjgsMTAsYj8xODoxNCk7WC5maWxsUmVjdCgyLXN3LGI/MTA6OCwxMCxiPzE4OjE0KTsKIFguZmlsbFN0eWxlPWY/JyNmZmYnOicjZWY0NDQ0JztYLmZpbGxSZWN0KC0xNCxiPy0xNDotMTAsMjgsYj8yNDoyMCk7CiBYLmZpbGxTdHlsZT0nI2ZjYTVhNSc7WC5maWxsUmVjdCgtMTIsYj8tMjg6LTIyLDI0LGI/MTQ6MTIpOwogWC5maWxsU3R5bGU9Zj8nI2ZmNDUwMCc6JyNkYzI2MjYnO1guZmlsbFJlY3QoLTE0LGI/LTMxOi0yNSwyOCw2KTsKIFguZmlsbFN0eWxlPScjMDAwJztYLmZpbGxSZWN0KDMsYj8tMjM6LTE4LDMsNCk7WC5yZXN0b3JlKCk7Cn0KZnVuY3Rpb24gZHJhd1dvcmxkKCl7CiBYLnNhdmUoKTtYLnRyYW5zbGF0ZSgtTWF0aC5mbG9vcihjYW1YKSsoc2hha2U/KHJuZCgpLS41KSpzaGFrZTowKSxzaGFrZT8ocm5kKCktLjUpKnNoYWtlOjApOwogLy8gZ29hbAogY29uc3Qgb3Blbj0hKGJvc3MmJmJvc3Mub24pOwogWC5maWxsU3R5bGU9JyM2NDc0OGInO1guZmlsbFJlY3QoZ29hbC54KzEwLGdvYWwueSw4LGdvYWwuaCk7CiBYLmZpbGxTdHlsZT1vcGVuPycjZWY0NDQ0JzonIzQ3NTU2OSc7WC5iZWdpblBhdGgoKTtjb25zdCB3PU1hdGguc2luKHRpY2svMTApKjQ7WC5tb3ZlVG8oZ29hbC54KzE4LGdvYWwueSk7WC5saW5lVG8oZ29hbC54KzYwLGdvYWwueSsyNSt3KTtYLmxpbmVUbyhnb2FsLngrMTgsZ29hbC55KzUwKTtYLmZpbGwoKTsKIFguZmlsbFN0eWxlPScjZjU5ZTBiJztYLmJlZ2luUGF0aCgpO1guYXJjKGdvYWwueCsxNCxnb2FsLnksOCwwLDcpO1guZmlsbCgpOwogLy8gYmxvY2tzCiBmb3IobGV0IGM9TWF0aC5tYXgoMCxNYXRoLmZsb29yKChjYW1YLTUwKS9CVykpO2M8PU1hdGguZmxvb3IoKGNhbVgrVys1MCkvQlcpO2MrKylmb3IoY29uc3QgYiBvZiBjb2xbY118fEUpewogIGNvbnN0IHk9Yi55LShiLmJ1bXA+MD9NYXRoLnNpbihiLmJ1bXAvMTAqTWF0aC5QSSkqMTA6MCk7CiAgaWYoYi50PT09J2cnKXtYLmZpbGxTdHlsZT0nIzMzNDE1NSc7WC5maWxsUmVjdChiLngseSxULFQpO1guZmlsbFN0eWxlPScjMWUyOTNiJztYLmZpbGxSZWN0KGIueCs0LHkrMjIsMTAsNik7WC5maWxsUmVjdChiLngrMjQseSsxMCw4LDYpO2lmKGIueT09PTQ2MCl7WC5maWxsU3R5bGU9JyMyMmM1NWUnO1guZmlsbFJlY3QoYi54LHksVCw3KTtYLmZpbGxTdHlsZT0nIzE2YTM0YSc7WC5maWxsUmVjdChiLngseSs3LFQsMyl9fQogIGVsc2UgaWYoYi50PT09J2InKXtYLmZpbGxTdHlsZT0nI2I0NTMwOSc7WC5maWxsUmVjdChiLngseSxULFQpO1guc3Ryb2tlU3R5bGU9JyM3ODM1MGYnO1gubGluZVdpZHRoPTI7WC5zdHJva2VSZWN0KGIueCsxLHkrMSxULTIsVC0yKTtYLmJlZ2luUGF0aCgpO1gubW92ZVRvKGIueCx5KzIwKTtYLmxpbmVUbyhiLngrVCx5KzIwKTtYLm1vdmVUbyhiLngrMjAseSk7WC5saW5lVG8oYi54KzIwLHkrMjApO1guc3Ryb2tlKCl9CiAgZWxzZSBpZihiLnQ9PT0ncScpe1guZmlsbFN0eWxlPScjZjU5ZTBiJztYLmZpbGxSZWN0KGIueCx5LFQsVCk7WC5zdHJva2VTdHlsZT0nI2I0NTMwOSc7WC5saW5lV2lkdGg9MjtYLnN0cm9rZVJlY3QoYi54KzEseSsxLFQtMixULTIpO3R4dCgnPycsYi54KzIwLHkrMjErTWF0aC5zaW4odGljay84KSoxLjUsMjAsJyNmZmYnKX0KICBlbHNlIGlmKGIudD09PSd1Jyl7WC5maWxsU3R5bGU9JyM2NDc0OGInO1guZmlsbFJlY3QoYi54LHksVCxUKX0KICBlbHNle1guZmlsbFN0eWxlPScjMTZhMzRhJztYLmZpbGxSZWN0KGIueCx5LFQsVCk7WC5maWxsU3R5bGU9JyM0YWRlODAnO1guZmlsbFJlY3QoYi54KzQseSw2LFQpO1guc3Ryb2tlU3R5bGU9JyMxNDUzMmQnO1gubGluZVdpZHRoPTI7WC5zdHJva2VSZWN0KGIueCx5LFQsVCl9CiB9CiBpZihib3NzJiZib3NzLm9uKXsKICBjb25zdCBiPWJvc3M7aWYoYi5odXJ0JTY8Myl7WC5maWxsU3R5bGU9JyMxZTFiNGInO1guZmlsbFJlY3QoYi54LGIueSxiLncsYi5oKTtYLmZpbGxTdHlsZT0nIzMxMmU4MSc7Zm9yKGxldCBpPTA7aTw0O2krKyl7WC5iZWdpblBhdGgoKTtYLm1vdmVUbyhiLngraSoyMCxiLnkpO1gubGluZVRvKGIueCtpKjIwKzEwLGIueS0xNCk7WC5saW5lVG8oYi54K2kqMjArMjAsYi55KTtYLmZpbGwoKX0KICBYLmZpbGxTdHlsZT0nI2RjMjYyNic7WC5maWxsUmVjdChiLngrMTAsYi55KzE1LDIwLDE1KTtYLmZpbGxSZWN0KGIueCs1MCxiLnkrMTUsMjAsMTUpO1guZmlsbFN0eWxlPScjZmZmJztYLmZpbGxSZWN0KGIueCsxNSsoYi52eD4wPzg6MCksYi55KzE5LDYsNik7WC5maWxsUmVjdChiLngrNTUrKGIudng+MD84OjApLGIueSsxOSw2LDYpfQogIFguZmlsbFN0eWxlPScjMDAwOCc7WC5maWxsUmVjdChiLngsYi55LTI4LGIudyw4KTtYLmZpbGxTdHlsZT0nI2VmNDQ0NCc7WC5maWxsUmVjdChiLngsYi55LTI4LGIudypiLmhwL2IubWF4LDgpOwogfQogZm9yKGNvbnN0IGYgb2YgZmxvd2VycylpZihmLm9uKXtjb25zdCBjeD1mLngrMTIsY3k9Zi55KzEyO1guZmlsbFN0eWxlPScjZmY0NTAwJztmb3IobGV0IGk9MDtpPDU7aSsrKXtYLmJlZ2luUGF0aCgpO1guYXJjKGN4K01hdGguY29zKGkqMS4yNikqNyxjeStNYXRoLnNpbihpKjEuMjYpKjcsNSwwLDcpO1guZmlsbCgpfVguZmlsbFN0eWxlPScjZmRlMDQ3JztYLmJlZ2luUGF0aCgpO1guYXJjKGN4LGN5LDUsMCw3KTtYLmZpbGwoKX0KIGZvcihjb25zdCBmIG9mIGZicyl7WC5maWxsU3R5bGU9JyNmZjQ1MDAnO1guYmVnaW5QYXRoKCk7WC5hcmMoZi54KzYsZi55KzYsNiwwLDcpO1guZmlsbCgpO1guZmlsbFN0eWxlPScjZmYwJztYLmJlZ2luUGF0aCgpO1guYXJjKGYueCs2LGYueSs2LDMsMCw3KTtYLmZpbGwoKX0KIGZvcihjb25zdCBmIG9mIGVmYnMpe1guZmlsbFN0eWxlPScjZGMyNjI2JztYLmJlZ2luUGF0aCgpO1guYXJjKGYueCs4LGYueSs4LDgsMCw3KTtYLmZpbGwoKTtYLmZpbGxTdHlsZT0nI2ZjYTVhNSc7WC5iZWdpblBhdGgoKTtYLmFyYyhmLngrOCxmLnkrOCwzLDAsNyk7WC5maWxsKCl9CiBmb3IoY29uc3QgZyBvZiBnZW1MKXtpZighZy5vbiljb250aW51ZTtjb25zdCBjeD1nLngrMTAsY3k9Zy55KzEwK01hdGguc2luKHRpY2svMTIrZy54KSo0LHM9TWF0aC5hYnMoTWF0aC5zaW4odGljay8yMCtnLngpKSo4KzI7WC5maWxsU3R5bGU9JyMzOGJkZjgnO1guYmVnaW5QYXRoKCk7WC5tb3ZlVG8oY3gsY3ktMTApO1gubGluZVRvKGN4K3MsY3kpO1gubGluZVRvKGN4LGN5KzEwKTtYLmxpbmVUbyhjeC1zLGN5KTtYLmZpbGwoKTtYLnN0cm9rZVN0eWxlPScjZmZmJztYLmxpbmVXaWR0aD0xLjU7WC5zdHJva2UoKX0KIGZvcihjb25zdCBlIG9mIGVuZW1pZXMpewogIGlmKCFlLm9ufHxlLng8Y2FtWC02MHx8ZS54PmNhbVgrVys2MCljb250aW51ZTsKICBYLnNhdmUoKTtYLnRyYW5zbGF0ZShlLngrMTYsZS55KzE2KTtjb25zdCBsPU1hdGguc2luKGUuYW4qMikqNjsKICBYLmZpbGxTdHlsZT0nIzk5MWIxYic7WC5maWxsUmVjdCgtMTIrbCw4LDgsOCk7WC5maWxsUmVjdCg0LWwsOCw4LDgpO1guZmlsbFN0eWxlPScjZGMyNjI2JztYLmZpbGxSZWN0KC0xNiwtMTYsMzIsMjQpOwogIFguZmlsbFN0eWxlPScjZmZmJztYLmZpbGxSZWN0KGUudng+MD8yOi0xMCwtOCw2LDYpO1guZmlsbFN0eWxlPScjMDAwJztYLmZpbGxSZWN0KGUudng+MD80Oi04LC02LDMsMyk7CiAgWC5maWxsUmVjdChlLnZ4PjA/LTI6LTEyLC0xMiwxMCwyKTtYLnJlc3RvcmUoKTsKIH0KIGRyYXdQbGF5ZXIoKTsKIGZvcihjb25zdCBwIG9mIHBhcnRzKXtYLmZpbGxTdHlsZT1wLmM7WC5maWxsUmVjdChwLngscC55LHAucyxwLnMpfQogZm9yKGNvbnN0IHAgb2YgcG9wcyl7WC5nbG9iYWxBbHBoYT1NYXRoLm1pbigxLHAubC8yMCk7dHh0KHAudCxwLngscC55LDEwLHAuYyk7WC5nbG9iYWxBbHBoYT0xfQogWC5yZXN0b3JlKCk7Cn0KZnVuY3Rpb24gZHJhd0hVRCgpewogbGV0IHg9MTQ7CiB4Kz1waWxsKHgsMTIsJ0xWICcrbHYrJy81Jyk7CiB4Kz1waWxsKHgsMTIsJ1NDT1JFICcrU3RyaW5nKHNjb3JlKS5wYWRTdGFydCg2LCcwJykpOwogeCs9cGlsbCh4LDEyLCdHRU1TICcrU3RyaW5nKGdlbXMpLnBhZFN0YXJ0KDIsJzAnKSwnIzdkZDNmYycpOwogeCs9cGlsbCh4LDEyLCdIUCAnKyfimaUnLnJlcGVhdChNYXRoLm1heCgwLGhwKSksJyNmODcxNzEnKTsKIHgrPXBpbGwoeCwxMixQLmZpcmU/J0ZJUkUnOlAuYmlnPydCSUcnOidOT1JNQUwnLFAuZmlyZT8nI2ZiOTIzYyc6JyNmZmYnKTsKIHBpbGwoeCwxMiwnVCAnK01hdGguY2VpbCh0bC9GUFMpLHRsPDE2KkZQUz8nI2Y4NzE3MSc6JyNmZmYnKTsKIGlmKHRvYXN0VD4wKXtYLmdsb2JhbEFscGhhPU1hdGgubWluKDEsdG9hc3RULzIwKTt0eHQodG9hc3QsVy8yLDcwLDEyLCcjZmRlMDQ3Jyk7WC5nbG9iYWxBbHBoYT0xfQp9CmZ1bmN0aW9uIHNoYWRlKGE9LjY1KXtYLmZpbGxTdHlsZT0ncmdiYSgyLDYsMjMsJythKycpJztYLmZpbGxSZWN0KDAsMCxXLEgpfQpmdW5jdGlvbiBkcmF3KCl7CiBkcmF3QmcoKTsKIGlmKHN0PT09J3RpdGxlJyl7c2hhZGUoLjQ1KTtjb25zdCBiPU1hdGguc2luKHRpY2svMTIpKjg7dHh0KCdHRU0gUlVOTkVSJyxXLzIsMTUwK2IsNDgsJyNmZGUwNDcnKTt0eHQoJzUgTEVWRUxTIMK3IDEgQk9TUycsVy8yLDIxNSwxNCwnI2ZmZicpOwogIHR4dCgnUFJFU1MgRU5URVIgT1IgVEFQIFRPIFBMQVknLFcvMiwzMDArYi8yLDE2LCcjNGFkZTgwJyk7CiAgdHh0KCdBL0QgT1IgQVJST1dTIE1PVkUgICBXL1NQQUNFIEpVTVAgKEhPTEQgPSBISUdIRVIpJyxXLzIsMzc1LDEwKTt0eHQoJ0RPVUJMRS1UQVAgRjogRklSRUJBTEwgICBQOiBQQVVTRSAgIE06IE1VVEUnLFcvMiw0MDAsMTApOwogIHR4dCgnU1RPTVAgRU5FTUlFUyDCtyBHUkFCIEdFTVMgwrcgSElUID8gQkxPQ0tTIEZPUiBGSVJFJyxXLzIsNDM1LDEwLCcjN2RkM2ZjJyk7aWYoYmVzdCl0eHQoJ0JFU1QgJytTdHJpbmcoYmVzdCkucGFkU3RhcnQoNiwnMCcpLFcvMiw0ODUsMTIsJyNmYmJmMjQnKTtyZXR1cm59CiBkcmF3V29ybGQoKTtkcmF3SFVEKCk7CiBpZihjbGVhclQ+MCl7c2hhZGUoKTt0eHQoJ0xFVkVMICcrbHYrJyBDTEVBUkVEIScsVy8yLEgvMi00MCwzMCwnIzIyYzU1ZScpO3R4dCgnVElNRSBCT05VUyArJytib251cyxXLzIsSC8yKzEwLDE0KTt0eHQobHY8NT8nR0VUIFJFQURZIEZPUiBMRVZFTCAnKyhsdisxKTonVklDVE9SWSEnLFcvMixILzIrNTAsMTQsJyNmZGUwNDcnKX0KIGlmKHN0PT09J3BhdXNlJyl7c2hhZGUoKTt0eHQoJ1BBVVNFRCcsVy8yLEgvMi0xMCwzNiwnI2ZkZTA0NycpO3R4dCgnUFJFU1MgUCBPUiBUQVAgVE8gUkVTVU1FJyxXLzIsSC8yKzQwLDEyKX0KIGlmKHN0PT09J292ZXInfHxzdD09PSd3aW4nKXtzaGFkZSguNzgpO2NvbnN0IHc9c3Q9PT0nd2luJzt0eHQodz8nWU9VIFdJTiEnOidHQU1FIE9WRVInLFcvMiwxNzAsNDAsdz8nIzIyYzU1ZSc6JyNlZjQ0NDQnKTsKICB0eHQoJ1NDT1JFICcrU3RyaW5nKHNjb3JlKS5wYWRTdGFydCg2LCcwJyksVy8yLDI1MCwxOCk7dHh0KCdCRVNUICcrU3RyaW5nKGJlc3QpLnBhZFN0YXJ0KDYsJzAnKSsoc2NvcmU+PWJlc3QmJnNjb3JlPjA/JyAgTkVXISc6JycpLFcvMiwyODUsMTQsJyNmYmJmMjQnKTsKICBpZihzdFQ+NjApdHh0KCdQUkVTUyBFTlRFUiBPUiBUQVAgVE8gUExBWSBBR0FJTicsVy8yLDM2MCwxMywnIzRhZGU4MCcpfQp9CgovLyAtLS0tLS0tLS0tIGlucHV0ICYgbG9vcCAtLS0tLS0tLS0tCmZ1bmN0aW9uIHBhdXNlKCl7aWYoc3Q9PT0ncGxheScpe3N0PSdwYXVzZSc7Zm9yKGNvbnN0IGsgaW4gSylLW2tdPWZhbHNlfWVsc2UgaWYoc3Q9PT0ncGF1c2UnKXN0PSdwbGF5J30KZnVuY3Rpb24gcHJlc3MoKXtpZihzdD09PSd0aXRsZSd8fCgoc3Q9PT0nb3Zlcid8fHN0PT09J3dpbicpJiZzdFQ+NjApKXN0YXJ0R2FtZSgpO2Vsc2UgaWYoc3Q9PT0ncGF1c2UnKXBhdXNlKCl9CmFkZEV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLGU9PnsKIGlmKFsnQXJyb3dVcCcsJ0Fycm93RG93bicsJ0Fycm93TGVmdCcsJ0Fycm93UmlnaHQnLCdTcGFjZSddLmluY2x1ZGVzKGUuY29kZSkpZS5wcmV2ZW50RGVmYXVsdCgpOwogaWYoZS5yZXBlYXQpcmV0dXJuOwogaWYoZS5jb2RlPT09J0tleU0nKXttdXRlZD0hbXV0ZWQ7cmV0dXJufQogaWYoZS5jb2RlPT09J0tleVAnfHxlLmNvZGU9PT0nRXNjYXBlJyl7cGF1c2UoKTtyZXR1cm59CiBpZihlLmNvZGU9PT0nRW50ZXInfHwoZS5jb2RlPT09J1NwYWNlJyYmc3QhPT0ncGxheScpKXtwcmVzcygpO3JldHVybn0KIEtbZS5jb2RlXT10cnVlO2lmKEpVTVAuaW5jbHVkZXMoZS5jb2RlKSlqYj03O2lmKGUuY29kZT09PSdLZXlGJylmaXJlS2V5KCk7Cn0pOwphZGRFdmVudExpc3RlbmVyKCdrZXl1cCcsZT0+e0tbZS5jb2RlXT1mYWxzZX0pOwpDLmFkZEV2ZW50TGlzdGVuZXIoJ3BvaW50ZXJkb3duJyxwcmVzcyk7CmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ3Zpc2liaWxpdHljaGFuZ2UnLCgpPT57aWYoZG9jdW1lbnQuaGlkZGVuJiZzdD09PSdwbGF5JylwYXVzZSgpfSk7CmRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJyN0YyBidXR0b24nKS5mb3JFYWNoKGI9PnsKIGNvbnN0IGs9Yi5kYXRhc2V0Lms7CiBiLmFkZEV2ZW50TGlzdGVuZXIoJ3BvaW50ZXJkb3duJyxlPT57ZS5wcmV2ZW50RGVmYXVsdCgpO2lmKHN0IT09J3BsYXknKXtwcmVzcygpO3JldHVybn1LW2tdPXRydWU7aWYoaz09PSdTcGFjZScpamI9NztpZihrPT09J0tleUYnKXtpZihQLmZpcmUpc2hvb3QoKTtlbHNlIGlmKHRvYXN0VDw9MClzYXkoJ0ZJTkQgQSBGSVJFIEZMT1dFUiBPUiA2IEdFTVMnKX19KTsKIFsncG9pbnRlcnVwJywncG9pbnRlcmNhbmNlbCcsJ3BvaW50ZXJsZWF2ZSddLmZvckVhY2gobj0+Yi5hZGRFdmVudExpc3RlbmVyKG4sKCk9PntLW2tdPWZhbHNlfSkpOwp9KTsKbGV0IGxhc3Q9MCxhY2N1PTA7CmZ1bmN0aW9uIGZyYW1lKHQpe2FjY3UrPU1hdGgubWluKHQtbGFzdCwxMDApO2xhc3Q9dDtjb25zdCBkdD0xMDAwL0ZQUzt3aGlsZShhY2N1Pj1kdCl7c3RlcCgpO2FjY3UtPWR0fWRyYXcoKTtyZXF1ZXN0QW5pbWF0aW9uRnJhbWUoZnJhbWUpfQpidWlsZCgxKTtyZXF1ZXN0QW5pbWF0aW9uRnJhbWUodD0+e2xhc3Q9dDtmcmFtZSh0KX0pOwo8L3NjcmlwdD48L2JvZHk+PC9odG1sPgo=';
+let gemRunnerHtmlCache = null;
+function getGemRunnerHtml(){
+ if(gemRunnerHtmlCache)return gemRunnerHtmlCache;
+ const bin=atob(GEM_RUNNER_HTML_B64);
+ const bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0));
+ gemRunnerHtmlCache=new TextDecoder('utf-8').decode(bytes);
+ return gemRunnerHtmlCache;
+}
+function startGemRunner(body,rec){
+ const src=getGemRunnerHtml();
+ body.innerHTML=`<div class="game-shell">
+   <div class="game-toolbar">
+    <div class="game-label"><span class="game-dot"></span><strong>GEM RUNNER</strong><span class="game-help">A/D or arrows move · W/Space jump · F fire · P pause · M mute</span></div>
+    <div class="game-actions"><button class="t" data-gem-action="reload" title="Restart Gem Runner">↻</button><button class="t" data-gem-action="new" title="Open game in a new tab">↗</button><button class="t" data-gem-action="full" title="Fullscreen game">⛶</button></div>
+   </div>
+   <iframe class="game-frame" title="Gem Runner" allow="fullscreen; autoplay; gamepad" tabindex="0" referrerpolicy="no-referrer"></iframe>
+  </div>`;
+ const frame=body.querySelector('.game-frame');
+ const load=()=>{frame.srcdoc=src;};
+ load();
+ frame.addEventListener('pointerdown',()=>{
+  if(!rec.alive)return;
+  focused=rec;rec.el.style.zIndex=++zTop;
+  for(const k in open)open[k].btn.classList.toggle('on',open[k]===rec);
+  frame.focus({preventScroll:true});
+ });
+ body.querySelector('[data-gem-action="reload"]').onclick=load;
+ body.querySelector('[data-gem-action="new"]').onclick=()=>{
+  const url=URL.createObjectURL(new Blob([src],{type:'text/html;charset=utf-8'}));
+  const tab=window.open(url,'_blank','noopener');
+  if(!tab){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();}
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ };
+ body.querySelector('[data-gem-action="full"]').onclick=()=>{
+  const target=frame;
+  if(document.fullscreenElement)document.exitFullscreen?.();
+  else target.requestFullscreen?.().catch(()=>{});
+ };
+}
+
+/* ---------- full game apps (loaded from the bundled original HTML files) ---------- */
+function startGameFrame(body, rec, src, title, help){
+ body.innerHTML = `<div class="game-shell">
+   <div class="game-toolbar">
+    <div class="game-label"><span class="game-dot"></span><strong>${title}</strong><span class="game-help">${help}</span></div>
+    <div class="game-actions"><button class="t" data-game-action="reload" title="Reload game">↻</button><button class="t" data-game-action="new" title="Open game in a new tab">↗</button><button class="t" data-game-action="full" title="Fullscreen">⛶</button></div>
+   </div>
+   <iframe class="game-frame" title="${title}" allow="fullscreen; autoplay; gamepad; pointer-lock; clipboard-read; clipboard-write"></iframe>
+  </div>`;
+ const frame=body.querySelector('.game-frame');
+ const load=()=>{frame.src=new URL(src, document.baseURI).href};
+ load();
+ body.querySelector('[data-game-action="reload"]').onclick=()=>{try{frame.contentWindow.location.reload()}catch(e){load()}};
+ body.querySelector('[data-game-action="new"]').onclick=()=>window.open(new URL(src, document.baseURI).href,'_blank','noopener');
+ body.querySelector('[data-game-action="full"]').onclick=async()=>{try{if(frame.requestFullscreen)await frame.requestFullscreen();else if(frame.contentWindow?.document?.documentElement?.requestFullscreen)await frame.contentWindow.document.documentElement.requestFullscreen()}catch(e){body.querySelector('.game-help').textContent='Use the browser fullscreen button if needed.'}};
+}
+function startDoom(body,rec){startGameFrame(body,rec,'doom.html','DOOM OFFLINE FPS','WASD move · arrows turn · click / Space fire · no internet needed');}
+function startDoomOnline(body,rec){startGameFrame(body,rec,'doom_online.html','DOOM ONLINE ORIGINAL','Internet required: original page loads the js-dos engine and game data');}
+
+/* ---------- app 2: user's Gem Runner platform game ---------- */
+function startPlumber(body,rec){startGameFrame(body,rec,'Gem Runner.html','GEM RUNNER','A/D or arrows move · W / Space jump · click inside first');}
+
+/* ---------- app 3: user's Eaglercraft Minecraft 1.12 build ---------- */
+function startBlocks(body,rec){startGameFrame(body,rec,'1.12.html','MINECRAFT 1.12','Click inside to capture the mouse · multiplayer needs internet');}
+
+/* ---------- office suite ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>']/g,c=>c==='&'?'&amp;':c==='<'?'&lt;':c==='>'?'&gt;':'&#39;');
+function downloadBlob(blob,filename){
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+/* ---------- real .docx export (hand-built OOXML, packaged with JSZip) ---------- */
+function docxRuns(node,fmt){
+ let runs=[];
+ node.childNodes.forEach(n=>{
+  if(n.nodeType===3){if(n.textContent)runs.push(Object.assign({t:n.textContent},fmt))}
+  else if(n.nodeType===1){
+   const tag=n.tagName.toLowerCase(),nf=Object.assign({},fmt);
+   if(tag==='b'||tag==='strong')nf.b=true;
+   if(tag==='i'||tag==='em')nf.i=true;
+   if(tag==='u')nf.u=true;
+   runs=runs.concat(docxRuns(n,nf));
+  }
+ });
+ return runs;
+}
+function docxRunXml(r){
+ const props=[];
+ if(r.b)props.push('<w:b/>');
+ if(r.i)props.push('<w:i/>');
+ if(r.u)props.push('<w:u w:val="single"/>');
+ if(r.sz)props.push('<w:sz w:val="'+r.sz+'"/><w:szCs w:val="'+r.sz+'"/>');
+ const rpr=props.length?'<w:rPr>'+props.join('')+'</w:rPr>':'';
+ return '<w:r>'+rpr+'<w:t xml:space="preserve">'+esc(r.t)+'</w:t></w:r>';
+}
+function docxParaXml(runs,opts){
+ opts=opts||{};
+ const pprParts=[];
+ if(opts.jc)pprParts.push('<w:jc w:val="'+opts.jc+'"/>');
+ if(opts.spacing)pprParts.push('<w:spacing w:before="'+opts.spacing+'" w:after="120"/>');
+ const ppr=pprParts.length?'<w:pPr>'+pprParts.join('')+'</w:pPr>':'';
+ const body=runs.length?runs.map(r=>docxRunXml(opts.sz?Object.assign({},r,{sz:opts.sz}):r)).join(''):'<w:r><w:t></w:t></w:r>';
+ return '<w:p>'+ppr+body+'</w:p>';
+}
+async function exportDocx(page,filename){
+ if(!window.JSZip){const html='<!doctype html><html><head><meta charset="utf-8"><title>WebOS Writer document</title><style>body{font:16px Georgia,serif;max-width:800px;margin:48px auto;line-height:1.65}h1{font-size:30px}h2{font-size:24px}</style></head><body>'+page.innerHTML+'</body></html>';downloadBlob(new Blob([html],{type:'application/msword'}),filename.replace(/\.docx?$/i,'.doc'));return}
+ const paras=[];
+ Array.from(page.children).forEach(el=>{
+  const tag=el.tagName.toLowerCase();
+  const ta=el.style&&el.style.textAlign;
+  const jc=ta==='center'?'center':ta==='right'?'right':null;
+  if(tag==='h1')paras.push(docxParaXml(docxRuns(el,{b:true}),{sz:36,spacing:240,jc}));
+  else if(tag==='h2')paras.push(docxParaXml(docxRuns(el,{b:true}),{sz:28,spacing:200,jc}));
+  else if(tag==='ul'||tag==='ol')
+   Array.from(el.children).forEach(li=>paras.push(docxParaXml([{t:'\u2022  '}].concat(docxRuns(li,{})),{jc})));
+  else paras.push(docxParaXml(docxRuns(el,{}),{jc}));
+ });
+ if(!paras.length)paras.push(docxParaXml([],{}));
+ const CT='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+ const RELS='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+ const DOC='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+paras.join('')+'<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>';
+ const zip=new JSZip();
+ zip.file('[Content_Types].xml',CT);
+ zip.file('_rels/.rels',RELS);
+ zip.file('word/document.xml',DOC);
+ const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+ downloadBlob(blob,filename);
+}
+function lex(s){
+ const out=[],isL=c=>(c>='A'&&c<='Z')||(c>='a'&&c<='z'),isD=c=>c>='0'&&c<='9';
+ let i=0;
+ while(i<s.length){
+  const c=s[i];
+  if(c===' '){i++;continue}
+  if(isL(c)){
+   let j=i;while(j<s.length&&isL(s[j]))j++;
+   let k=j;while(k<s.length&&isD(s[k]))k++;
+   if(k===j){out.push({t:'id',v:s.slice(i,j)});i=j;continue}
+   if(s[k]===':'){
+    let f=k+1,h=f;while(h<s.length&&isL(s[h]))h++;
+    let m=h;while(m<s.length&&isD(s[m]))m++;
+    if(h>f&&m>h){out.push({t:'rng',v:s.slice(i,m)});i=m;continue}
+   }
+   out.push({t:'ref',v:s.slice(i,k)});i=k;continue;
+  }
+  if(isD(c)||c==='.'){let j=i;while(j<s.length&&(isD(s[j])||s[j]==='.'))j++;const n=+s.slice(i,j);if(isNaN(n))throw 0;out.push({t:'num',v:n});i=j;continue}
+  if('+-*/^(),'.indexOf(c)>=0){out.push({t:'op',v:c});i++;continue}
+  throw 0;
+ }
+ return out;
+}
+function evalF(src,ref,rng){
+ const T=lex(src);let i=0;
+ const pk=()=>T[i],isOp=v=>!!pk()&&pk().t==='op'&&pk().v===v;
+ const expr=()=>{let v=term();while(isOp('+')||isOp('-')){const o=T[i++].v,r=term();v=o==='+'?v+r:v-r}return v};
+ const term=()=>{let v=fac();while(isOp('*')||isOp('/')){const o=T[i++].v,r=fac();v=o==='*'?v*r:v/r}return v};
+ const fac=()=>{const b=un();if(isOp('^')){i++;return Math.pow(b,fac())}return b};
+ const un=()=>{if(isOp('-')){i++;return -un()}if(isOp('+')){i++;return un()}return atom()};
+ const args=()=>{const a=[],one=()=>{if(pk()&&pk().t==='rng')a.push(...rng(T[i++].v));else a.push(expr())};if(!isOp(')')){one();while(isOp(',')){i++;one()}}return a};
+ const atom=()=>{const t=T[i++];if(!t)throw 0;
+  if(t.t==='num')return t.v;
+  if(t.t==='ref')return ref(t.v.toUpperCase());
+  if(t.t==='op'&&t.v==='('){const v=expr();if(!isOp(')'))throw 0;i++;return v}
+  if(t.t==='id'&&isOp('(')){i++;const a=args();if(!isOp(')'))throw 0;i++;return fn(t.v.toUpperCase(),a)}
+  throw 0};
+ const fn=(n,a)=>{
+  if(n==='SUM')return a.reduce((s,x)=>s+x,0);
+  if(n==='AVERAGE')return a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+  if(n==='MIN')return a.length?Math.min(...a):0;
+  if(n==='MAX')return a.length?Math.max(...a):0;
+  if(n==='COUNT')return a.length;
+  if(n==='ROUND'){const p=10**(a[1]||0);return Math.round(a[0]*p)/p}
+  throw 0};
+ const v=expr();if(i<T.length)throw 0;return v;
+}
+function startOfficeHub(body,rec){
+ body.innerHTML=`<div class="app office-home">
+  <div class="office-top"><div class="office-mark">▦</div><div><div class="office-eyebrow">WEBOS PRODUCTIVITY</div><h1>Office Suite</h1><p>Write, calculate, and present — saved in this browser as you work.</p></div></div>
+  <div class="office-cards">
+   <button class="office-card writer" data-open="docs"><span class="office-card-icon">📝</span><span class="office-card-title">Writer</span><span class="office-card-desc">Format documents, use headings and lists, and export to .docx.</span><span class="office-card-action">Open Writer →</span></button>
+   <button class="office-card sheets" data-open="sheets"><span class="office-card-icon">📊</span><span class="office-card-title">Sheets</span><span class="office-card-desc">Edit a spreadsheet, use supported formulas, and export .xlsx files.</span><span class="office-card-action">Open Sheets →</span></button>
+   <button class="office-card slides" data-open="slides"><span class="office-card-icon">📽️</span><span class="office-card-title">Slides</span><span class="office-card-desc">Build a presentation, add images, reorder slides, and export .pptx.</span><span class="office-card-action">Open Slides →</span></button>
+  </div>
+  <div class="office-bottom"><span class="save-dot"></span> Auto-save enabled <span class="office-sep">•</span> Files stay in this browser unless you export them.</div>
+ </div>`;
+ body.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>officeView(body,rec,b.dataset.open));
+}
+function officeView(body,rec,which){
+ const views={docs:startDocs,sheets:startSheet,slides:startPPT};
+ if(which==='home')return startOfficeHub(body,rec);
+ const fn=views[which];if(!fn)return startOfficeHub(body,rec);
+ fn(body,rec);
+ const nav=document.createElement('div');nav.className='ofc office-nav';
+ nav.innerHTML='<button class="t" data-home="1">← Office Home</button><b style="margin-left:8px">Office Suite</b><span class="cnt">One app · three tools</span>';
+ body.querySelector('.app')?.prepend(nav);
+ nav.querySelector('[data-home]').onclick=()=>startOfficeHub(body,rec);
+}
+function startDocs(body,rec){
+ body.innerHTML=`<div class='app'><div class='ofc' id='dt'><button class='t' data-c='undo'>↶</button><button class='t' data-c='redo'>↷</button><select data-c='formatBlock'><option value='P'>Normal</option><option value='H1'>Heading 1</option><option value='H2'>Heading 2</option></select><select data-c='fontSize'><option value='3'>Normal</option><option value='5'>Large</option><option value='7'>Huge</option></select><button class='t' data-c='bold'><b>B</b></button><button class='t' data-c='italic'><i>I</i></button><button class='t' data-c='underline'><u>U</u></button><button class='t' data-c='insertUnorderedList'>• List</button><button class='t' data-c='justifyCenter'>Center</button><button class='t' data-c='justifyRight'>Right</button><button class='t' id='dExp'>⬇ Export Word document</button><span class='cnt' id='wc'></span></div><div class='page' contenteditable='true' spellcheck='true'></div></div>`;
+ const page=body.querySelector('.page'),wc=body.querySelector('#wc');
+ page.innerHTML=store.get('webos.docs','<h1>Untitled document</h1><p>Start typing here.</p>');
+ const count=()=>{const t=page.innerText.split(String.fromCharCode(10)).join(' ').trim();wc.textContent=(t?t.split(' ').filter(w=>w).length:0)+' words'};
+ page.oninput=()=>{store.set('webos.docs',page.innerHTML);count()};
+ body.querySelector('#dt').onmousedown=e=>{if(e.target.tagName!=='SELECT')e.preventDefault()};
+ body.querySelectorAll('[data-c]').forEach(el=>{
+  if(el.tagName==='SELECT')el.onchange=()=>document.execCommand(el.dataset.c,false,el.value);
+  else el.onclick=()=>document.execCommand(el.dataset.c,false,null);
+ });
+ body.querySelector('#dExp').onclick=()=>{
+  const h1=page.querySelector('h1');
+  const name=((h1&&h1.innerText.trim())||'document').replace(/[^a-z0-9]+/gi,'_').slice(0,40)||'document';
+  exportDocx(page,name+'.docx');
+ };
+ count();
+}
+function startSheet(body,rec){
+ const C=10,R=30,data=store.get('webos.sheet',{}),colL=c=>String.fromCharCode(65+c),key=(c,r)=>colL(c)+(r+1);
+ const pos=k=>({c:k.charCodeAt(0)-65,r:+k.slice(1)-1});
+ const num=v=>{if(typeof v==='number')return v;if(typeof v==='string'&&v.charAt(0)==='#')throw 0;return 0};
+ const cells=(rg,d)=>{const parts=rg.toUpperCase().split(':'),p=pos(parts[0]),q=pos(parts[1]),out=[];
+  for(let c=p.c;c<=q.c;c++)for(let r=p.r;r<=q.r;r++){const v=valOf(key(c,r),d+1);if(typeof v==='string'&&v.charAt(0)==='#')throw 0;if(typeof v==='number')out.push(v)}
+  return out};
+ function valOf(k,d=0){
+  const r=String(data[k]??'').trim();
+  if(r==='')return '';
+  if(r.charAt(0)!=='=')return isNaN(+r)?r:+r;
+  if(d>25)return '#REF';
+  try{return evalF(r.slice(1),ref=>num(valOf(ref.toUpperCase(),d+1)),rg=>cells(rg,d))}catch(e){return '#ERR'}
+ }
+ const disp=k=>{const v=valOf(k);return typeof v==='number'?String(Math.round(v*1e6)/1e6):String(v)};
+ body.innerHTML=`<div class='app'><div class='ofc'><b class='addr' id='ad'>A1</b><input class='fx' id='fx' placeholder='Type a value or a formula, e.g. =SUM(A1:A5)'><button class='t' id='sExp'>⬇ Export CSV (offline)</button></div><div class='grid'><table id='tb'></table></div></div>`;
+ const tbl=body.querySelector('#tb'),fx=body.querySelector('#fx'),ad=body.querySelector('#ad');
+ let html='<tr><th></th>';
+ for(let c=0;c<C;c++)html+='<th>'+colL(c)+'</th>';
+ html+='</tr>';
+ for(let r=0;r<R;r++){html+='<tr><th>'+(r+1)+'</th>';for(let c=0;c<C;c++)html+=`<td><input class='c' data-k='${key(c,r)}'></td>`;html+='</tr>'}
+ tbl.innerHTML=html;
+ const show=()=>tbl.querySelectorAll('input.c').forEach(i=>{if(i!==document.activeElement)i.value=disp(i.dataset.k)});
+ const setCell=(k,v)=>{data[k]=v;store.set('webos.sheet',data);show()};
+ tbl.addEventListener('focusin',e=>{const i=e.target;if(!i.dataset||!i.dataset.k)return;const raw=data[i.dataset.k]??'';ad.textContent=i.dataset.k;fx.value=raw;i.value=raw});
+ tbl.addEventListener('change',e=>{const i=e.target;if(i.dataset&&i.dataset.k){setCell(i.dataset.k,i.value);i.value=disp(i.dataset.k)}});
+ tbl.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.blur)e.target.blur()});
+ fx.addEventListener('change',()=>setCell(ad.textContent,fx.value));
+ fx.addEventListener('keydown',e=>{if(e.key==='Enter')fx.blur()});
+ body.querySelector('#sExp').onclick=()=>{
+  if(!window.XLSX){let maxC=0,maxR=0;for(const k of Object.keys(data)){if(data[k]!==undefined&&String(data[k]).trim()!==''){const p=pos(k);maxC=Math.max(maxC,p.c);maxR=Math.max(maxR,p.r)}}const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const lines=[];for(let r=0;r<=maxR;r++){const row=[];for(let c=0;c<=maxC;c++)row.push(q(disp(key(c,r))));lines.push(row.join(','))}downloadBlob(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'sheet.csv');return}
+  const ws={};let maxC=0,maxR=0;
+  for(let c=0;c<C;c++)for(let r=0;r<R;r++){
+   const k=key(c,r),raw=data[k];
+   if(raw===undefined||raw===null||String(raw).trim()==='')continue;
+   maxC=Math.max(maxC,c);maxR=Math.max(maxR,r);
+   const str=String(raw);
+   if(str.charAt(0)==='='){
+    const v=valOf(k);
+    ws[k]=typeof v==='number'?{t:'n',v,f:str.slice(1)}:{t:'s',v:String(v),f:str.slice(1)};
+   } else if(str!==''&&!isNaN(+str)){ws[k]={t:'n',v:+str}}
+   else{ws[k]={t:'s',v:str}}
+  }
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxR,c:maxC}});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  XLSX.writeFile(wb,'sheet.xlsx');
+ };
+ show();
+}
+function startSlides(body,rec){
+ let deck=store.get('webos.slides',[{t:'Welcome',b:'Click a slide to edit it.'}]),cur=0;
+ body.innerHTML=`<div class='app'></div>`;
+ const root=body.firstElementChild;
+ const save=()=>store.set('webos.slides',deck);
+ function editor(){
+  root.innerHTML=`<div class='ofc'><button class='t' id='sN'>+ New slide</button><button class='t' id='sD'>Delete</button><button class='t' id='sP'>Present ▶</button><span class='cnt'>Slide ${cur+1} of ${deck.length}</span></div><div class='srow'><div class='thumbs'>${deck.map((d,i)=>`<div class='th${i===cur?' on':''}' data-i='${i}'>${i+1}. ${esc(d.t)||'(untitled)'}</div>`).join('')}</div><div class='stage'><input class='ti' id='sT' value='${esc(deck[cur].t)}'><textarea class='tb' id='sB'>${esc(deck[cur].b)}</textarea></div></div>`;
+  root.querySelectorAll('.th').forEach(t=>t.onclick=()=>{cur=+t.dataset.i;editor()});
+  root.querySelector('#sT').oninput=e=>{deck[cur].t=e.target.value;save();const th=root.querySelector('.th.on');if(th)th.textContent=(cur+1)+'. '+(e.target.value||'(untitled)')};
+  root.querySelector('#sB').oninput=e=>{deck[cur].b=e.target.value;save()};
+  root.querySelector('#sN').onclick=()=>{deck.splice(cur+1,0,{t:'New slide',b:''});cur++;save();editor()};
+  root.querySelector('#sD').onclick=()=>{if(deck.length>1){deck.splice(cur,1);cur=Math.max(0,cur-1);save();editor()}};
+  root.querySelector('#sP').onclick=()=>present(0);
+ }
+ function present(i){
+  const d=deck[i];
+  root.innerHTML=`<div class='pres'><div class='pc'>${i+1} / ${deck.length}</div><h1>${esc(d.t)}</h1><p style='white-space:pre-wrap'>${esc(d.b)}</p><div class='ofc' style='justify-content:center;background:none;border:0'><button class='t' id='pp'>◀ Prev</button><button class='t' id='pn'>Next ▶</button><button class='t' id='pe'>Exit</button></div></div>`;
+  root.querySelector('#pp').onclick=()=>present(Math.max(0,i-1));
+  root.querySelector('#pn').onclick=()=>present(Math.min(deck.length-1,i+1));
+  root.querySelector('#pe').onclick=()=>editor();
+ }
+ editor();
+}
+function startCalc(body,rec){
+ body.innerHTML=`<div class='app'><div class='ofc'><input class='fx' id='ci' placeholder='Type a sum, e.g. (12+8)*3 or 2^10 or ROUND(10/3,2)'></div><div class='calcout' id='co'></div></div>`;
+ const ci=body.querySelector('#ci'),co=body.querySelector('#co');
+ ci.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!ci.value.trim())return;
+  let r;try{r=evalF(ci.value,()=>{throw 0},()=>{throw 0})}catch(err){r='Error'}
+  const line=document.createElement('div');
+  line.textContent=ci.value+'  =  '+(typeof r==='number'?String(Math.round(r*1e8)/1e8):r);
+  co.prepend(line);ci.value='';
+ });
+}
+/* ---------- files, video, terminal ---------- */
+const DBP=new Promise((res,rej)=>{const r=indexedDB.open('webos',1);r.onupgradeneeded=()=>r.result.createObjectStore('files',{keyPath:'name'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function dbDo(mode,fn){const db=await DBP;return new Promise((res,rej)=>{const tx=db.transaction('files',mode),q=fn(tx.objectStore('files'));tx.oncomplete=()=>res(q?q.result:undefined);tx.onerror=()=>rej(tx.error)})}
+const kindOf=t=>t.startsWith('video')?'🎬':t.startsWith('image')?'🖼️':t.startsWith('text')?'📄':'📦';
+function startFiles(body,rec){
+ body.innerHTML=`<div class='app'><div class='ofc'><button class='t' id='fUp'>+ Import files</button><input type='file' id='fIn' multiple hidden><span class='cnt' id='fSt'></span></div><div class='fl' id='fl'></div><div class='fprev' id='fp'></div></div>`;
+ const fl=body.querySelector('#fl'),fp=body.querySelector('#fp'),st=body.querySelector('#fSt'),fi=body.querySelector('#fIn');
+ let prevUrl=null;
+ const list=async()=>{
+  const all=(await dbDo('readonly',s=>s.getAll()))||[];
+  all.sort((a,b)=>a.name.localeCompare(b.name));
+  st.textContent=all.length+' file(s) saved in this browser';
+  fl.innerHTML=all.map(f=>`<div class='frow'><span>${kindOf(f.type||'')}</span><span class='fn'>${esc(f.name)}</span><span class='fz'>${(f.size/1048576).toFixed(2)} MB</span><button class='t' data-o='${esc(f.name)}'>Open</button><button class='t' data-d='${esc(f.name)}'>Delete</button></div>`).join('')||'<p class=empty>No files yet. Click Import files.</p>';
+ };
+ fl.onclick=async e=>{
+  const o=e.target.dataset.o,d=e.target.dataset.d;
+  if(d){await dbDo('readwrite',s=>s.delete(d));list();return}
+  if(!o)return;
+  const f=await dbDo('readonly',s=>s.get(o));
+  if(!f)return;
+  const ty=f.type||'';
+  if(ty.startsWith('video')){launch('video');window.playFile(o);return}
+  if(prevUrl){URL.revokeObjectURL(prevUrl);prevUrl=null}
+  fp.innerHTML='';
+  if(ty.startsWith('text')){fp.textContent=await f.blob.text()}
+  else if(ty.startsWith('image')){prevUrl=URL.createObjectURL(f.blob);const im=document.createElement('img');im.src=prevUrl;im.style.maxHeight='140px';fp.appendChild(im)}
+  else fp.textContent='No viewer for this file type. Video files open in Video Player.';
+ };
+ body.querySelector('#fUp').onclick=()=>fi.click();
+ fi.onchange=async()=>{try{for(const f of fi.files)await dbDo('readwrite',s=>s.put({name:f.name,type:f.type,size:f.size,blob:f}))}catch(err){st.textContent='Could not save: '+err.message}fi.value='';list()};
+ list();
+}
+function startVideo(body,rec){
+ body.innerHTML=`<div class='app'><div class='ofc'><button class='t' id='vIn'>Open MP4 from computer</button><input type='file' accept='video/*' id='vFile' hidden><span class='cnt' id='vName'>No video loaded. Opening a video from Files also works.</span></div><video id='vid' class='vid' controls playsinline></video></div>`;
+ const vid=body.querySelector('#vid'),vn=body.querySelector('#vName');
+ let url=null;
+ const load=(name,blob)=>{if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(blob);vid.src=url;vn.textContent=name;vid.play().catch(()=>{})};
+ vid.onerror=()=>{vn.textContent='Could not play this file. Try an H.264 MP4.'};
+ body.querySelector('#vIn').onclick=()=>body.querySelector('#vFile').click();
+ body.querySelector('#vFile').onchange=e=>{const f=e.target.files[0];if(f)load(f.name,f)};
+ window.playFile=async name=>{const f=await dbDo('readonly',s=>s.get(name));if(f)load(name,f.blob)};
+}
+function startTerm(body,rec){
+ body.innerHTML=`<div class='term'><div id='to'></div><div class='tl'><span class='tp'>user@webos:~$&nbsp;</span><input id='ti' autocomplete='off' spellcheck='false'></div></div>`;
+ const to=body.querySelector('#to'),ti=body.querySelector('#ti'),term=body.querySelector('.term');
+ const print=t=>to.appendChild(document.createTextNode(t+String.fromCharCode(10)));
+ const cmds=Object.assign(Object.create(null),{
+  help:()=>'commands: help, ls, open <app>, date, echo <text>, whoami, clear',
+  date:()=>new Date().toString(),
+  whoami:()=>'user',
+  echo:a=>a.join(' '),
+  ls:async()=>{const all=(await dbDo('readonly',s=>s.getAll()))||[];return all.map(f=>f.name).join('  ')||'(no files yet; import some in Files)'},
+  open:a=>{const q=a.join(' ').toLowerCase(),id=Object.keys(APPS).find(k=>k===q||APPS[k].name.toLowerCase()===q);if(!id)return 'open: no app named '+q;launch(id);return 'opening '+APPS[id].name}
+ });
+ ti.addEventListener('keydown',async e=>{
+  if(e.key!=='Enter')return;
+  const line=ti.value.trim();ti.value='';
+  print('user@webos:~$ '+line);
+  if(!line)return;
+  if(line==='clear'){to.textContent='';return}
+  const parts=line.split(' '),c=parts[0];
+  try{const r=cmds[c]?await cmds[c](parts.slice(1)):c+': command not found (try help)';if(r!==undefined)print(r)}catch(err){print('error: '+err.message)}
+  term.scrollTop=1e9;
+ });
+ body.onclick=()=>ti.focus();
+ print('WebOS terminal. Type help.');
+}
+/* ---------- PowerPoint and settings ---------- */
+function startPPT(body,rec){
+ const KEY='webos.ppt',BG=['#ffffff','#1b2a3a','#0b3d2e','#3b1f4a','#4a2a0b','#222222'],FONTS=['Georgia,serif','Arial,sans-serif','Courier New,monospace','Impact,sans-serif'];
+ let deck=store.get(KEY,null)||[{t:'Click to add title',b:'Click to add text',bg:'#ffffff',f:0}],cur=0;
+ const save=()=>store.set(KEY,deck);
+ body.innerHTML=`<div class='app'><div class='ofc'><button class='t' id='pN'>+ Slide</button><button class='t' id='pD'>Duplicate</button><button class='t' id='pX'>Delete</button><button class='t' id='pU'>▲</button><button class='t' id='pDn'>▼</button><select id='pF'>${FONTS.map((f,i)=>`<option value='${i}'>${f.split(',')[0]}</option>`).join('')}</select>${BG.map(c=>`<span class='sw' data-bg='${c}' style='background:${c}'></span>`).join('')}<label class='t'>Image<input type='file' accept='image/*' id='pI' hidden></label><button class='t' id='pP'>▶ Present</button><button class='t' id='pExp'>⬇ Export HTML (offline)</button><span class='cnt' id='pS'></span></div><div class='srow'><div class='thumbs' id='pT'></div><div class='stage'><div class='slide' id='pSl'><div class='stt' contenteditable='true' id='pTi'></div><div class='sbd' contenteditable='true' id='pBd'></div><img id='pIm' class='pim' alt=''></div></div></div></div>`;
+ const q=s=>body.querySelector(s),slide=q('#pSl'),ti=q('#pTi'),bd=q('#pBd'),im=q('#pIm'),th=q('#pT'),fsel=q('#pF'),st=q('#pS');
+ function paint(){
+  const s=deck[cur],dark=s.bg!=='#ffffff';
+  slide.style.background=s.bg;
+  ti.style.color=bd.style.color=dark?'#fff':'#111';
+  ti.style.fontFamily=bd.style.fontFamily=FONTS[s.f||0];
+  ti.innerText=s.t;bd.innerText=s.b;
+  im.hidden=!s.img;im.src=s.img||'';
+  fsel.value=s.f||0;
+  st.textContent='Slide '+(cur+1)+' of '+deck.length;
+  th.innerHTML='';
+  deck.forEach((d,i)=>{const e=document.createElement('div');e.className='th'+(i===cur?' on':'');e.style.background=d.bg;e.style.color=d.bg==='#ffffff'?'#111':'#fff';e.textContent=(i+1)+'. '+(d.t||'(untitled)');e.onclick=()=>{cur=i;paint()};th.appendChild(e)});
+ }
+ const plain=t=>t.split(String.fromCharCode(10)).join(' ').trim();
+ ti.onkeydown=e=>{if(e.key==='Enter')e.preventDefault()};
+ ti.oninput=()=>{deck[cur].t=plain(ti.innerText);save();const on=th.querySelector('.on');if(on)on.textContent=(cur+1)+'. '+(deck[cur].t||'(untitled)')};
+ bd.oninput=()=>{deck[cur].b=bd.innerText;save()};
+ q('#pN').onclick=()=>{deck.splice(cur+1,0,{t:'New slide',b:'',bg:deck[cur].bg,f:deck[cur].f||0});cur++;save();paint()};
+ q('#pD').onclick=()=>{deck.splice(cur+1,0,JSON.parse(JSON.stringify(deck[cur])));cur++;save();paint()};
+ q('#pX').onclick=()=>{if(deck.length>1){deck.splice(cur,1);cur=Math.max(0,cur-1);save();paint()}};
+ q('#pU').onclick=()=>{if(cur>0){[deck[cur-1],deck[cur]]=[deck[cur],deck[cur-1]];cur--;save();paint()}};
+ q('#pDn').onclick=()=>{if(cur<deck.length-1){[deck[cur+1],deck[cur]]=[deck[cur],deck[cur+1]];cur++;save();paint()}};
+ fsel.onchange=()=>{deck[cur].f=+fsel.value;save();paint()};
+ body.querySelectorAll('.sw').forEach(sw=>sw.onclick=()=>{deck[cur].bg=sw.dataset.bg;save();paint()});
+ q('#pI').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>600000){st.textContent='Image too big (max 600 KB)';return}const r=new FileReader();r.onload=()=>{deck[cur].img=r.result;save();paint()};r.readAsDataURL(f)};
+ q('#pP').onclick=()=>present(cur);
+ q('#pExp').onclick=()=>{
+  if(!window.PptxGenJS){const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WebOS Slides</title><style>body{margin:0;background:#0b1520;font-family:Arial,sans-serif}.slide{width:min(1100px,92vw);min-height:64vh;margin:5vh auto;padding:6vw;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;box-shadow:0 15px 55px #0008;page-break-after:always}.slide h1{font-size:clamp(28px,5vw,58px);margin:0 0 25px}.slide p{font-size:clamp(18px,2.4vw,28px);white-space:pre-wrap;line-height:1.5}.slide img{max-width:80%;max-height:32vh;object-fit:contain;align-self:center}</style></head><body>'+deck.map(s=>'<section class="slide" style="background:'+s.bg+';color:'+(s.bg==='#ffffff'?'#111':'#fff')+'"><h1>'+esc(s.t||'')+'</h1><p>'+esc(s.b||'')+'</p>'+(s.img?'<img src="'+s.img+'" alt="">':'')+'</section>').join('')+'</body></html>';downloadBlob(new Blob([html],{type:'text/html;charset=utf-8'}),'presentation.html');return}
+  const pptx=new PptxGenJS();
+  deck.forEach(s=>{
+   const dark=s.bg!=='#ffffff',color=dark?'FFFFFF':'111111',face=(FONTS[s.f||0]||'Arial').split(',')[0];
+   const sl=pptx.addSlide();
+   sl.background={color:s.bg.replace('#','')};
+   sl.addText(s.t||'',{x:0.5,y:0.35,w:9,h:1.1,fontSize:32,bold:true,color,fontFace:face});
+   sl.addText(s.b||'',{x:0.5,y:1.6,w:9,h:s.img?1.4:3.6,fontSize:18,color,fontFace:face});
+   if(s.img)sl.addImage({data:s.img,x:2.5,y:3.1,w:5,h:3});
+  });
+  pptx.writeFile({fileName:'presentation.pptx'});
+ };
+ function present(i){
+  const ov=document.createElement('div');ov.className='pres full';body.appendChild(ov);
+  const show=()=>{const s=deck[i],dk=s.bg!=='#ffffff';ov.style.background=s.bg;ov.style.color=dk?'#fff':'#111';ov.style.fontFamily=FONTS[s.f||0];ov.innerHTML=`<div class='pc'>${i+1} / ${deck.length} - arrows to move, Esc to exit</div><h1>${esc(s.t)}</h1><p style='white-space:pre-wrap'>${esc(s.b)}</p>${s.img?`<img class='pimg' src='${s.img}' alt=''>`:''}`};
+  const exit=()=>{removeEventListener('keydown',key);ov.remove();cur=i;paint()};
+  const key=e=>{if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){if(i<deck.length-1){i++;show()}}else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){if(i>0){i--;show()}}else if(e.key==='Escape')exit()};
+  addEventListener('keydown',key);
+  ov.onclick=()=>{if(i<deck.length-1){i++;show()}else exit()};
+  show();
+ }
+ paint();
+}
+function startSettings(body,rec){
+ const WN=['Kali blue','Green','Purple','Graphite'],WG=['radial-gradient(circle at 75% 25%,#1b4a7a,#0b1620 55%,#05090e)','radial-gradient(circle at 30% 20%,#2b6b3a,#0b1a10 60%,#050806)','radial-gradient(circle at 50% 10%,#5a2a6b,#150a1c 60%,#050308)','linear-gradient(160deg,#2a2f3a,#0a0c10)'];
+ body.innerHTML=`<div class='app' style='padding:14px'><h3 style='margin:0 0 10px'>Settings</h3><div style='margin-bottom:6px'>Wallpaper</div><div class='ofc' id='wp'>${WN.map((n,i)=>`<button class='t' data-w='${i}'>${n}</button>`).join('')}</div><div style='margin-top:14px'><button class='t' id='rs'>Clear saved documents and files</button> <span class='cnt' id='rsm'></span></div></div>`;
+ body.querySelector('#wp').onclick=e=>{const i=e.target.dataset.w;if(i!==undefined)desk.style.background=WG[+i]};
+ body.querySelector('#rs').onclick=async()=>{['webos.docs','webos.sheet','webos.slides','webos.ppt'].forEach(k=>localStorage.removeItem(k));await dbDo('readwrite',s=>s.clear());body.querySelector('#rsm').textContent='Cleared'};
+}
+/* ---------- Block Survival: multi-dimension world ---------- */
+function startSurvival(body,rec){
+ const N=80,TS=32,VW=20,VH=12,KEY='webos.bs.multiverse',LEGACY='webos.bs';
+ const SPAWN=Math.floor(N/2)+.5,HOSTILES=new Set(['zombie','skeleton','spider','blaze','enderman','piglin']),MOB_KINDS=new Set(['cow','pig','zombie','skeleton','spider','blaze','enderman','piglin']);
+ const SOLID=[2,3,4,5,6,7,8,9,10,12,13,14,15],MAX_REACH=4.2;
+ const DIMENSIONS={
+  overworld:{name:'Overworld',icon:'🌿',hint:'Large 80×80 world · coal, iron, gold, emeralds and diamonds'},
+  nether:{name:'Nether',icon:'🔥',hint:'Large crimson wastes · quartz, piglins and blazes'},
+  end:{name:'The End',icon:'🌌',hint:'Large void lands · end shards, endermen and spiders'}
+ };
+ const DEFAULT_INV={wood:0,planks:0,sticks:0,soil:0,stone:0,coal:0,ore:0,ingot:0,meat:0,quartz:0,ender_shard:0,nether_brick:0,end_crystal:0,gold_ore:0,gold_ingot:0,diamond:0,emerald:0,copper_ore:0,copper_ingot:0};
+ const NEED={4:1,5:1,6:2,12:3,13:3,14:2,15:2};
+ const MINING_REQUIREMENT={5:1,6:2,12:3,13:3,14:2,15:2};
+ const HOTBAR=[
+  {id:'planks',label:'Planks',icon:'🪵'},
+  {id:'stone',label:'Stone',icon:'🪨'},
+  {id:'nether_brick',label:'Nether Brick',icon:'🧱'},
+  {id:'end_crystal',label:'End Crystal',icon:'🔮'},
+  {id:'soil',label:'Soil',icon:'🟫'}
+ ];
+ const INV_META=[
+  ['wood','Wood','🪵'],['planks','Planks','🪚'],['sticks','Sticks','🥢'],['soil','Soil','🟫'],
+  ['stone','Stone','🪨'],['coal','Coal','⚫'],['ore','Iron Ore','⛏️'],['ingot','Iron Ingots','🔩'],
+  ['gold_ore','Gold Ore','🟨'],['gold_ingot','Gold Ingots','🪙'],['diamond','Diamonds','💎'],['emerald','Emeralds','🟢'],
+  ['copper_ore','Copper Ore','🟠'],['copper_ingot','Copper Ingots','🟧'],['meat','Meat','🍖'],['quartz','Quartz','💠'],['ender_shard','End Shards','🔮'],
+  ['nether_brick','Nether Bricks','🧱'],['end_crystal','End Crystals','🔮']
+ ];
+ const PLACEABLES=new Set(['planks','stone','nether_brick','end_crystal','soil']);
+ const ITEM_META=Object.fromEntries(INV_META.map(([id,label,icon])=>[id,{id,label,icon}]));
+ const TOOL_META=[
+  {id:'wpick',label:'Wood Pickaxe',icon:'⛏️',kind:'pick',rank:1},
+  {id:'spick',label:'Stone Pickaxe',icon:'⛏️',kind:'pick',rank:2},
+  {id:'ipick',label:'Iron Pickaxe',icon:'⚒️',kind:'pick',rank:3},
+  {id:'dpick',label:'Diamond Pickaxe',icon:'💎',kind:'pick',rank:4},
+  {id:'wsword',label:'Wood Sword',icon:'🗡️',kind:'sword',rank:1},
+  {id:'ssword',label:'Stone Sword',icon:'⚔️',kind:'sword',rank:2},
+  {id:'gsword',label:'Gold Sword',icon:'✨',kind:'sword',rank:3},
+  {id:'isword',label:'Iron Sword',icon:'🗡️',kind:'sword',rank:4},
+  {id:'dsword',label:'Diamond Sword',icon:'💎',kind:'sword',rank:5}
+ ];
+ const PICK_RANK={wpick:1,spick:2,ipick:3,dpick:4},SWORD_DAMAGE={wsword:2,ssword:4,gsword:5,isword:6,dsword:10};
+ const RECIPES=[
+  {n:'Planks ×4',c:{wood:1},o:{planks:4}},
+  {n:'Sticks ×4',c:{planks:2},o:{sticks:4}},
+  {n:'Wood pickaxe',c:{planks:3,sticks:2},t:'wpick'},
+  {n:'Wood sword',c:{planks:2,sticks:1},t:'wsword'},
+  {n:'Stone pickaxe',c:{stone:3,sticks:2},t:'spick'},
+  {n:'Stone sword',c:{stone:2,sticks:1},t:'ssword'},
+  {n:'Smelt iron ingot',c:{ore:1,coal:1},o:{ingot:1}},
+  {n:'Iron pickaxe',c:{ingot:3,sticks:2},t:'ipick'},
+  {n:'Iron sword',c:{ingot:2,sticks:1},t:'isword'},
+  {n:'Smelt gold ingot',c:{gold_ore:1,coal:1},o:{gold_ingot:1}},
+  {n:'Gold sword',c:{gold_ingot:2,sticks:1},t:'gsword'},
+  {n:'Diamond pickaxe',c:{diamond:3,sticks:2},t:'dpick'},
+  {n:'Diamond sword',c:{diamond:2,sticks:1},t:'dsword'},
+  {n:'Smelt copper ingot',c:{copper_ore:1,coal:1},o:{copper_ingot:1}},
+  {n:'Nether bricks ×4',c:{quartz:2,stone:1},o:{nether_brick:4}},
+  {n:'End crystal',c:{ender_shard:3,ingot:1},o:{end_crystal:1}}
+ ];
+ const hs=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)};
+ let dim='overworld',world=[],inv={...DEFAULT_INV},tools={},equippedPick='',equippedSword='',hp=10,px=SPAWN,py=SPAWN,day=0,mobs=[],placeMode='planks',selectedSlot=0,inventoryOpen=false,helpOpen=false,msg='',msgT=0,hurtT=0,regenT=0,zT=0,fWas=false,states={},minedTile=null,hoverTile=null;
+ const say=t=>{msg=t;msgT=2.5};
+ const bestPick=()=>['dpick','ipick','spick','wpick'].find(id=>tools[id])||'';
+ const bestSword=()=>['dsword','isword','gsword','ssword','wsword'].find(id=>tools[id])||'';
+ const tier=()=>equippedPick&&tools[equippedPick]?(PICK_RANK[equippedPick]||0):0;
+ // Combat auto-selects the strongest sword crafted, even if a weaker one was last selected.
+ const dmg=()=>{const id=bestSword();return id&&tools[id]?(SWORD_DAMAGE[id]||1):1};
+ const solid=t=>SOLID.includes(t);
+ const walkP=(x,y)=>{for(const[cx,cy]of[[x-.3,y-.3],[x+.3,y-.3],[x-.3,y+.3],[x+.3,y+.3]]){const tx=Math.floor(cx),ty=Math.floor(cy);if(tx<0||ty<0||tx>=N||ty>=N||!world[ty]||solid(world[ty][tx]))return false}return true};
+ const walkM=(x,y)=>{const tx=Math.floor(x),ty=Math.floor(y);return tx>=0&&ty>=0&&tx<N&&ty<N&&world[ty]&&([0,1,11].includes(world[ty][tx]))};
+ const isNight=()=>day%90>=55;
+ function terrainTile(x,y,which){
+  const h=Math.sin(x*.3)+Math.cos(y*.27)+Math.sin((x+y)*.15)+Math.cos(x*y*.01),r=hs(x,y);let t=0;
+  if(which==='overworld'){
+   if(h<-1.3)t=2;else if(h<-.8)t=1;else if(h>1.0)t=r<.12?6:r<.3?5:4;else if(r<.1)t=3;
+   if(t===4){const vein=hs(x+21,y+4);if(vein<.010)t=12;else if(vein<.028)t=13;else if(vein<.060)t=14;else if(vein<.085)t=15;}
+  }else if(which==='nether'){
+   if(h<-1.12&&r<.46)t=2;else if(h<-.78)t=1;else if(h>1.0)t=r<.14?6:r<.34?5:4;else if(r<.13)t=3;
+  }else{
+   if(h<-1.2&&r<.36)t=2;else if(h<-.8)t=1;else if(h>.98)t=r<.15?6:r<.33?5:4;else if(r<.12)t=3;
+  }
+  if(Math.hypot(x-(SPAWN-.5),y-(SPAWN-.5))<4&&t!==0&&t!==1)t=0;
+  return t;
+ }
+ function trySpawn(kind){
+  for(let i=0;i<80;i++){
+   const x=1+Math.floor(Math.random()*(N-2)),y=1+Math.floor(Math.random()*(N-2)),d=Math.hypot(x+.5-px,y+.5-py);
+   if(!world[y]||world[y][x]!==0||mobs.some(m=>Math.floor(m.x)===x&&Math.floor(m.y)===y))continue;
+   if(HOSTILES.has(kind)&&(d<7||d>Math.min(N*.43,30)))continue;
+   if(!HOSTILES.has(kind)&&d<5)continue;
+   const hpByKind={cow:3,pig:2,zombie:5,skeleton:4,spider:3,blaze:5,enderman:7,piglin:5};
+   mobs.push({kind,x:x+.5,y:y+.5,hp:hpByKind[kind]||3,maxHp:hpByKind[kind]||3,flash:0,cool:0,vx:0,vy:0,wander:1});return true;
+  }
+  return false;
+ }
+ function generateWorld(which){
+  dim=which;world=[];mobs=[];day=0;px=SPAWN;py=SPAWN;zT=0;placeMode=HOTBAR[0]?.id||'planks';selectedSlot=0;hoverTile=null;
+  for(let y=0;y<N;y++){const row=[];for(let x=0;x<N;x++)row.push(terrainTile(x,y,which));world.push(row)}
+  if(which==='overworld'){
+   for(let i=0;i<5;i++)trySpawn('cow');for(let i=0;i<3;i++)trySpawn('pig');
+   for(let i=0;i<2;i++)trySpawn('zombie');for(let i=0;i<2;i++)trySpawn('skeleton');trySpawn('spider');
+  }else if(which==='nether'){
+   for(let i=0;i<4;i++)trySpawn('blaze');for(let i=0;i<3;i++)trySpawn('piglin');for(let i=0;i<2;i++)trySpawn('skeleton');
+  }else{
+   for(let i=0;i<4;i++)trySpawn('enderman');for(let i=0;i<3;i++)trySpawn('spider');
+  }
+ }
+ function snapshot(){return {world:world.map(row=>row.slice()),mobs:mobs.map(m=>({...m})),px,py,day,placeMode};}
+ function restoreState(s){
+  if(!s||!Array.isArray(s.world)||!s.world.length||s.world.length>N||s.world.some(r=>!Array.isArray(r)||!r.length||r.length>N))return false;
+  const srcH=s.world.length,srcW=Math.max(...s.world.map(r=>r.length)),resized=srcH!==N||srcW!==N||s.world.some(r=>r.length!==N);
+  let ox=0,oy=0;
+  if(resized){
+   ox=Math.floor((N-srcW)/2);oy=Math.floor((N-srcH)/2);
+   world=Array.from({length:N},(_,y)=>Array.from({length:N},(_,x)=>terrainTile(x,y,dim)));
+   for(let y=0;y<srcH;y++)for(let x=0;x<s.world[y].length;x++){const v=s.world[y][x];world[y+oy][x+ox]=Number.isInteger(v)&&v>=0&&v<=15?v:0;}
+  }else world=s.world.map(r=>r.map(v=>Number.isInteger(v)&&v>=0&&v<=15?v:0));
+  mobs=Array.isArray(s.mobs)?s.mobs.filter(m=>m&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&MOB_KINDS.has(m.kind)).map(m=>({...m,x:m.x+ox,y:m.y+oy,hp:Number.isFinite(m.hp)?m.hp:3})):[];
+  px=Number.isFinite(s.px)?Math.max(1,Math.min(N-1,s.px+ox)):SPAWN;py=Number.isFinite(s.py)?Math.max(1,Math.min(N-1,s.py+oy)):SPAWN;
+  day=Number.isFinite(s.day)?Math.max(0,s.day):0;placeMode=PLACEABLES.has(s.placeMode)?s.placeMode:(HOTBAR[0]?.id||'planks');selectedSlot=HOTBAR.findIndex(item=>item.id===placeMode);if(selectedSlot<0){selectedSlot=0;placeMode=HOTBAR[selectedSlot].id;}
+  if(!walkP(px,py)){px=SPAWN;py=SPAWN;if(!walkP(px,py)){world[Math.floor(SPAWN)][Math.floor(SPAWN)]=0;world[Math.floor(SPAWN)][Math.floor(SPAWN)+1]=0;}}
+  return true;
+ }
+ function applyHotbar(list){
+  if(!Array.isArray(list))return;
+  list.slice(0,HOTBAR.length).forEach((entry,i)=>{
+   const id=typeof entry==='string'?entry:entry&&entry.id;
+   if(!PLACEABLES.has(id)||!ITEM_META[id])return;
+   HOTBAR[i]={id,label:ITEM_META[id].label,icon:ITEM_META[id].icon};
+  });
+ }
+ function save(){
+  try{states[dim]=snapshot();store.set(KEY,{version:3,dim,states,inv,tools,hp,equippedPick,equippedSword,hotbar:HOTBAR.map(item=>item.id)});}catch(e){}
+ }
+ function loadSaved(){
+  const data=store.get(KEY,null);
+  if(data&&(data.version===2||data.version===3)&&data.states){
+   applyHotbar(data.hotbar);dim=DIMENSIONS[data.dim]?data.dim:'overworld';states=data.states||{};inv={...DEFAULT_INV,...(data.inv||{})};tools=data.tools&&typeof data.tools==='object'?data.tools:{};hp=Number.isFinite(data.hp)?Math.max(1,Math.min(10,data.hp)):10;
+   equippedPick=(data.equippedPick&&tools[data.equippedPick])?data.equippedPick:bestPick();equippedSword=(data.equippedSword&&tools[data.equippedSword])?data.equippedSword:bestSword();
+   if(restoreState(states[dim]))return true;
+   dim='overworld';if(restoreState(states.overworld))return true;
+  }
+  // Migrate worlds saved by the previous single-dimension version.
+  const old=store.get(LEGACY,null);
+  if(old&&Array.isArray(old.world)&&old.world.length>0&&old.world.length<=N&&old.world.every(r=>Array.isArray(r)&&r.length>0&&r.length<=N)){
+   dim='overworld';inv={...DEFAULT_INV,...(old.inv||{})};tools=old.tools&&typeof old.tools==='object'?old.tools:{};hp=Number.isFinite(old.hp)?Math.max(1,Math.min(10,old.hp)):10;equippedPick=bestPick();equippedSword=bestSword();
+   states.overworld={world:old.world,mobs:Array.isArray(old.mobs)?old.mobs:[],px:old.px,py:old.py,day:old.day,placeMode:old.placeMode||'planks'};
+   if(restoreState(states.overworld))return true;
+  }
+  return false;
+ }
+ function mine(tx,ty){
+  if(!Number.isInteger(tx)||!Number.isInteger(ty)||tx<0||ty<0||tx>=N||ty>=N)return;
+  if(Math.hypot(tx+.5-px,ty+.5-py)>MAX_REACH)return say('Too far away — move closer to the block');
+  const t=world[ty][tx];
+  // Liquids/voids are removable but do not drop inventory items.
+  if(t===2){world[ty][tx]=11;save();say(dim==='nether'?'Cleared a lava tile':'Cleared a water/void tile');return}
+  if(dim==='overworld'&&MINING_REQUIREMENT[t]&&tier()<MINING_REQUIREMENT[t]){
+   const needed=({1:'Wood Pickaxe',2:'Stone Pickaxe',3:'Iron Pickaxe'})[MINING_REQUIREMENT[t]]||'better pickaxe';
+   const label=({5:'Coal',6:'Iron Ore',12:'Diamond Ore',13:'Gold Ore',14:'Emerald Ore',15:'Copper Ore'})[t]||'ore';
+   return say(label+' needs a '+needed);
+  }
+  const drop=t===0||t===1?'soil':t===3?'wood':t===4||t===8?'stone':t===5?(dim==='nether'?'quartz':dim==='end'?'ender_shard':'coal'):t===6?(dim==='nether'?'quartz':dim==='end'?'ender_shard':'ore'):t===7?'planks':t===9?'nether_brick':t===10?'end_crystal':t===12?'diamond':t===13?'gold_ore':t===14?'emerald':t===15?'copper_ore':'soil';
+  const bonus=(NEED[t]&&tier()>=NEED[t])?1:0;
+  world[ty][tx]=(t===0||t===1)?11:0;inv[drop]=(inv[drop]||0)+1+bonus;
+  say('+'+(1+bonus)+' '+drop.replace('_',' '));burstMining(tx,ty);save();refreshCraft();
+ }
+ function burstMining(tx,ty){
+  // Small confirmation flash so a successful hit is obvious even on a large window.
+  minedTile={x:tx,y:ty,until:performance.now()+180};
+ }
+ function place(wx,wy){
+  const tx=Math.floor(wx),ty=Math.floor(wy);
+  if(tx<0||ty<0||tx>=N||ty>=N)return;
+  if(Math.hypot(tx+.5-px,ty+.5-py)>MAX_REACH)return say('Too far away — move closer');
+  if(world[ty][tx]!==0&&world[ty][tx]!==1&&world[ty][tx]!==11)return say('Choose an empty tile');
+  if(mobs.some(m=>Math.floor(m.x)===tx&&Math.floor(m.y)===ty))return say('An animal is in the way');
+  if(Math.floor(px)===tx&&Math.floor(py)===ty)return say('Cannot place a block on yourself');
+  const type=placeMode;if((inv[type]||0)<=0)return say('No '+type.replace('_',' ')+' - craft or mine some');
+  if(type==='soil'&&world[ty][tx]!==0&&world[ty][tx]!==11)return say('Place soil only on an empty tile');
+  inv[type]--;world[ty][tx]=type==='soil'?1:type==='stone'?8:type==='nether_brick'?9:type==='end_crystal'?10:7;save();refreshCraft();
+ }
+ const canCraft=r=>Object.entries(r.c).every(([k,v])=>(inv[k]||0)>=v)&&!(r.t&&tools[r.t]);
+ function craftIt(r){
+  if(!canCraft(r))return say('Missing materials or already crafted');
+  for(const[k,v]of Object.entries(r.c))inv[k]-=v;
+  if(r.t){
+   tools[r.t]=1;
+   if(PICK_RANK[r.t]&&(!equippedPick||PICK_RANK[r.t]>(PICK_RANK[equippedPick]||0)))equippedPick=r.t;
+   if(SWORD_DAMAGE[r.t]&&(!equippedSword||SWORD_DAMAGE[r.t]>(SWORD_DAMAGE[equippedSword]||0)))equippedSword=r.t;
+  }
+  if(r.o)for(const[k,v]of Object.entries(r.o))inv[k]=(inv[k]||0)+v;
+  say('Crafted '+r.n);save();refreshCraft();
+ }
+ function update(dt,k){
+  day+=dt;msgT=Math.max(0,msgT-dt);hurtT=Math.max(0,hurtT-dt);
+  for(let i=0;i<HOTBAR.length;i++){if(k['Digit'+(i+1)]&&selectedSlot!==i){selectSlot(i,false);break}}
+  const fNow=!!k.KeyF;if(fNow&&!fWas&&(inv.meat||0)>0&&hp<10){inv.meat--;hp=Math.min(10,hp+3);say('Ate meat +3 HP');save()}fWas=fNow;
+  const dx=(k.KeyD||k.ArrowRight?1:0)-(k.KeyA||k.ArrowLeft?1:0),dy=(k.KeyS||k.ArrowDown?1:0)-(k.KeyW||k.ArrowUp?1:0);
+  const s=4*dt*(dx&&dy?.7071:1);
+  if(dx&&walkP(px+dx*s,py))px+=dx*s;if(dy&&walkP(px,py+dy*s))py+=dy*s;
+  if(hp<10){regenT+=dt;if(regenT>=8){regenT=0;hp=Math.min(10,hp+1)}}
+  zT-=dt;
+  const hostiles=mobs.filter(m=>HOSTILES.has(m.kind)).length,passives=mobs.filter(m=>!HOSTILES.has(m.kind)).length;
+  if((dim!=='overworld'||isNight())&&zT<=0&&hostiles<12){
+   zT=2.7;
+   const pool=dim==='nether'?['blaze','piglin','skeleton']:dim==='end'?['enderman','spider']:['zombie','skeleton','spider'];
+   trySpawn(pool[Math.floor(Math.random()*pool.length)]);
+  }
+  if(dim==='overworld'&&!isNight()&&passives<10&&Math.random()<dt*.45)trySpawn(Math.random()<.5?'cow':'pig');
+  for(const m of mobs){
+   m.flash=Math.max(0,(m.flash||0)-dt);m.cool=(m.cool||0)-dt;
+   if(HOSTILES.has(m.kind)){
+    const ex=px-m.x,ey=py-m.y,d=Math.hypot(ex,ey);
+    const speed=({zombie:1.1,skeleton:.8,spider:1.75,blaze:1.0,enderman:1.45,piglin:1.2})[m.kind]||1.1;
+    if(d>.75&&d<18){const sp=speed*dt,nx=m.x+ex/d*sp,ny=m.y+ey/d*sp;if(walkM(nx,m.y))m.x=nx;if(walkM(m.x,ny))m.y=ny}
+    const range=m.kind==='skeleton'?3.3:m.kind==='blaze'?3.8:1.15;
+    if(d<range&&m.cool<=0){const hurt=({zombie:2,skeleton:1.2,spider:1.6,blaze:1.4,enderman:3,piglin:1.8})[m.kind]||1.5;hp-=hurt;m.cool=({spider:.8,blaze:1.5,skeleton:1.25,enderman:1.3})[m.kind]||1;hurtT=.4;}
+   }else{
+    m.wander-=dt;if(m.wander<=0){m.wander=2+Math.random()*2;m.vx=(Math.random()-.5);m.vy=(Math.random()-.5)}
+    const nx=m.x+m.vx*dt,ny=m.y+m.vy*dt;if(walkM(nx,m.y))m.x=nx;if(walkM(m.x,ny))m.y=ny;
+   }
+  }
+  if(hp<=0){hp=10;px=SPAWN;py=SPAWN;if(!walkP(px,py)){world[Math.floor(SPAWN)][Math.floor(SPAWN)]=0;world[Math.floor(SPAWN)][Math.floor(SPAWN)+1]=0;}mobs=mobs.filter(m=>!HOSTILES.has(m.kind));say('You died. Respawned at this dimension’s spawn.');save();}
+  if(msgT<=0)msg='';
+ }
+ const cv=document.createElement('canvas');cv.width=VW*TS;cv.height=VH*TS;cv.style.width=(VW*TS)+'px';cv.style.height=(VH*TS)+'px';cv.style.maxWidth='100%';cv.style.maxHeight='100%';cv.style.imageRendering='pixelated';cv.style.display='block';cv.style.touchAction='none';cv.style.flex='none';
+ const g=cv.getContext('2d');g.imageSmoothingEnabled=false;
+ let cam={x:0,y:0};
+ function tileColor(t){
+  if(dim==='nether')return ({0:'#7f1d1d',1:'#956747',2:'#f04424',3:'#4c1d3b',4:'#5b3430',5:'#d4a06c',6:'#b97545',7:'#6b382d',8:'#3e1c2b',11:'#241116'})[t]||'#7f1d1d';
+  if(dim==='end')return ({0:'#b7a4d7',1:'#9f8acb',2:'#21152f',3:'#60438b',4:'#655c78',5:'#ae9bd5',6:'#71dce5',7:'#907db7',8:'#50465f',11:'#30243e'})[t]||'#b7a4d7';
+  return ({0:'#4f9d3a',1:'#e3c77a',2:'#2f6fd6',3:'#3d8a3d',4:'#7d7d7d',5:'#7d7d7d',6:'#7d7d7d',7:'#b5834a',8:'#9a9a9a',11:'#27392e'})[t]||'#000';
+ }
+ function draw(){
+  cam={x:Math.max(0,Math.min(N-VW,Math.floor(px-VW/2))),y:Math.max(0,Math.min(N-VH,Math.floor(py-VH/2)))};
+  for(let ty=0;ty<VH;ty++)for(let tx=0;tx<VW;tx++){
+   const wx=cam.x+tx,wy=cam.y+ty,t=world[wy]?.[wx]??0,x=tx*TS,y=ty*TS;
+   g.fillStyle=tileColor(t);g.fillRect(x,y,TS,TS);
+   g.fillStyle='rgba(255,255,255,.12)';g.beginPath();g.moveTo(x,y);g.lineTo(x+TS,y);g.lineTo(x+TS-4,y+4);g.lineTo(x+4,y+4);g.closePath();g.fill();
+   g.fillStyle='rgba(0,0,0,.18)';g.beginPath();g.moveTo(x+TS,y);g.lineTo(x+TS,y+TS);g.lineTo(x+TS-4,y+TS-4);g.lineTo(x+TS-4,y+4);g.closePath();g.fill();g.strokeStyle='rgba(0,0,0,.2)';g.strokeRect(x+.5,y+.5,TS-1,TS-1);
+   if(t===3){
+    if(dim==='overworld'){g.fillStyle='#6b4226';g.fillRect(x+13,y+18,6,12);g.fillStyle='#287b35';g.beginPath();g.arc(x+16,y+14,12,0,2*Math.PI);g.fill();g.fillStyle='#50a944';g.fillRect(x+7,y+8,7,4);g.fillRect(x+18,y+4,6,5)}
+    else if(dim==='nether'){g.fillStyle='#3f172b';g.fillRect(x+13,y+17,6,14);g.fillStyle='#fb7185';g.fillRect(x+5,y+7,22,12);g.fillStyle='#fda4af';g.fillRect(x+9,y+4,6,5);g.fillRect(x+20,y+10,5,5)}
+    else{g.fillStyle='#5b3b80';g.fillRect(x+14,y+13,4,18);g.fillRect(x+7,y+9,5,5);g.fillRect(x+22,y+5,5,5);g.fillStyle='#c4b5fd';g.fillRect(x+5,y+8,5,5);g.fillRect(x+21,y+4,5,5)}
+   }else if(t===5||t===6||t===12||t===13||t===14||t===15){
+    const oreColor=t===12?'#39e7ff':t===13?'#fbbf24':t===14?'#34d399':t===15?'#fb923c':dim==='nether'?'#f5c07a':dim==='end'?(t===5?'#bfa8ff':'#67e8f9'):(t===5?'#171717':'#e0b48a');g.fillStyle=oreColor;[[6,7],[18,9],[9,20],[21,21],[13,14],[25,6]].forEach(([a,b])=>g.fillRect(x+a,y+b,4,4));g.fillStyle='rgba(255,255,255,.35)';g.fillRect(x+5,y+5,4,3);if(t>=12){g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=1;g.strokeRect(x+2,y+2,TS-4,TS-4)}
+   }else if(t===7){g.strokeStyle=dim==='nether'?'#d18b71':'#6b4226';g.lineWidth=2;g.beginPath();g.moveTo(x,y+10);g.lineTo(x+TS,y+10);g.moveTo(x,y+22);g.lineTo(x+TS,y+22);g.stroke();g.strokeStyle='#d4a46b';g.lineWidth=1;g.beginPath();g.moveTo(x+8,y);g.lineTo(x+8,y+TS);g.moveTo(x+24,y);g.lineTo(x+24,y+TS);g.stroke()}
+   else if(t===8){g.strokeStyle=dim==='end'?'#d5c7f3':'#555';g.lineWidth=2;g.strokeRect(x+3,y+3,TS-6,TS-6);g.strokeStyle='#aaa';g.lineWidth=1;g.beginPath();g.moveTo(x+6,y+8);g.lineTo(x+14,y+5);g.moveTo(x+18,y+22);g.lineTo(x+25,y+17);g.stroke()}
+   else if(t===9){g.fillStyle='#692b26';g.fillRect(x+2,y+2,28,28);g.strokeStyle='#d97757';g.lineWidth=2;g.strokeRect(x+3,y+4,26,10);g.strokeRect(x+3,y+19,26,10);g.fillStyle='#9f4230';g.fillRect(x+13,y+4,4,10);g.fillRect(x+21,y+19,4,10)}
+   else if(t===10){g.fillStyle='#4c1d95';g.fillRect(x+4,y+4,24,24);g.fillStyle='#67e8f9';g.beginPath();g.moveTo(x+16,y+3);g.lineTo(x+25,y+16);g.lineTo(x+16,y+29);g.lineTo(x+7,y+16);g.closePath();g.fill();g.fillStyle='#fff';g.fillRect(x+14,y+8,4,4)}
+   else if(t===0){
+    if(dim==='overworld'){g.fillStyle='#458a33';if(hs(wx,wy)<.25){g.fillRect(x+4,y+6,8,4);g.fillRect(x+8,y+10,3,4)}if(hs(wx+5,wy)<.14){g.fillStyle='#79bd4b';g.fillRect(x+20,y+20,5,3)}}
+    else if(dim==='nether'){g.fillStyle='#ef4444';if(hs(wx,wy)<.23){g.fillRect(x+5,y+8,9,3);g.fillRect(x+17,y+21,7,3)}g.fillStyle='#f97316';if(hs(wx+5,wy)<.11)g.fillRect(x+20,y+5,4,4)}
+    else{g.fillStyle='#d9cef0';if(hs(wx,wy)<.22){g.fillRect(x+4,y+7,8,3);g.fillRect(x+18,y+20,7,4)}g.fillStyle='#8b5cf6';if(hs(wx+5,wy)<.11)g.fillRect(x+20,y+5,4,4)}
+   }else if(t===1){g.fillStyle=dim==='nether'?'#b89b75':dim==='end'?'#d5c8e7':'rgba(255,255,255,.22)';g.fillRect(x+5,y+7,10,3);g.fillRect(x+17,y+20,9,4)}
+   else if(t===2){if(dim==='nether'){g.fillStyle='#ff7b25';g.fillRect(x+2,y+8,28,5);g.fillStyle='#ffda69';g.fillRect(x+7,y+20,16,4)}else if(dim==='end'){g.fillStyle='#6d28d9';g.fillRect(x+3,y+6,26,4);g.fillStyle='#a78bfa';g.fillRect(x+10,y+20,13,4)}}
+   else if(t===11){g.fillStyle=dim==='nether'?'#12090c':dim==='end'?'#1d1428':'#17251c';g.fillRect(x+4,y+4,24,24);g.strokeStyle=dim==='end'?'#56446d':'#3d5140';g.lineWidth=2;g.strokeRect(x+5,y+5,22,22);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x+9,y+10,14,12);g.fillStyle='rgba(255,255,255,.08)';g.fillRect(x+7,y+7,7,2)}
+  }
+  if(minedTile&&minedTile.until>performance.now()){const mx=(minedTile.x-cam.x)*TS,my=(minedTile.y-cam.y)*TS;g.strokeStyle='#fff';g.lineWidth=3;g.strokeRect(mx+2,my+2,TS-4,TS-4)}else if(minedTile){minedTile=null}
+  if(hoverTile&&hoverTile.x>=cam.x&&hoverTile.x<cam.x+VW&&hoverTile.y>=cam.y&&hoverTile.y<cam.y+VH){
+   const hx=(hoverTile.x-cam.x)*TS,hy=(hoverTile.y-cam.y)*TS;
+   g.fillStyle='rgba(255,255,255,.10)';g.fillRect(hx+1,hy+1,TS-2,TS-2);
+   g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=2;g.strokeRect(hx+2,hy+2,TS-4,TS-4);
+  }
+  for(const m of mobs){
+   const x=(m.x-cam.x)*TS,y=(m.y-cam.y)*TS;if(x<-40||y<-40||x>cv.width+40||y>cv.height+40)continue;
+   if(m.kind==='cow'){
+    g.fillStyle='#222';g.fillRect(x-12,y-7,25,17);g.fillStyle='#f4f4f4';g.fillRect(x-12,y-9,24,15);g.fillStyle='#6b4226';g.fillRect(x-8,y-5,6,6);g.fillRect(x+3,y+1,5,5);g.fillStyle='#f4f4f4';g.fillRect(x-8,y+7,4,6);g.fillRect(x+5,y+7,4,6);
+   }else if(m.kind==='pig'){
+    g.fillStyle='#e99caa';g.fillRect(x-12,y-8,24,16);g.fillStyle='#f7c4cd';g.fillRect(x-8,y-14,16,10);g.fillStyle='#b85e71';g.fillRect(x-4,y-9,8,5);g.fillStyle='#633344';g.fillRect(x-2,y-8,2,3);g.fillRect(x+2,y-8,2,3);g.fillStyle='#f7c4cd';g.fillRect(x-8,y+7,4,6);g.fillRect(x+5,y+7,4,6);
+   }else if(m.kind==='spider'){
+    g.strokeStyle='#111827';g.lineWidth=3;for(let q=-1;q<=1;q++){g.beginPath();g.moveTo(x+q*5,y+1);g.lineTo(x+q*12-7,y+10);g.moveTo(x+q*5,y+1);g.lineTo(x+q*12+7,y-8);g.stroke()}g.fillStyle=m.flash>0?'#fff':'#27212e';g.beginPath();g.ellipse(x,y+1,12,8,0,0,Math.PI*2);g.fill();g.fillStyle='#ef4444';g.fillRect(x-5,y-2,3,3);g.fillRect(x+3,y-2,3,3);
+   }else if(m.kind==='skeleton'){
+    g.fillStyle=m.flash>0?'#fff':'#d7d9d7';g.fillRect(x-7,y-13,14,23);g.fillRect(x-8,y-20,16,10);g.fillRect(x-10,y-1,5,12);g.fillRect(x+5,y-1,5,12);g.fillStyle='#111827';g.fillRect(x-5,y-17,3,3);g.fillRect(x+2,y-17,3,3);g.fillStyle='#7c5236';g.strokeStyle='#c9b38a';g.lineWidth=2;g.beginPath();g.moveTo(x+9,y-10);g.quadraticCurveTo(x+18,y-1,x+9,y+8);g.stroke();g.beginPath();g.moveTo(x+9,y-10);g.lineTo(x+13,y+7);g.stroke();
+   }else if(m.kind==='blaze'){
+    const pulse=Math.sin(day*7+m.x)*3;g.fillStyle='#f59e0b';g.fillRect(x-7,y-9,14,20);g.fillStyle='#fcd34d';g.fillRect(x-9,y-15+pulse,18,7);g.fillRect(x-9,y+7-pulse,18,6);g.fillStyle='#7c2d12';g.fillRect(x-4,y-4,3,3);g.fillRect(x+2,y-4,3,3);g.fillStyle='#f97316';for(let q=0;q<4;q++){g.fillRect(x-15+q*10,y-18+(q%2)*3,4,4);g.fillRect(x-15+q*10,y+12-(q%2)*3,4,4)}
+   }else if(m.kind==='enderman'){
+    g.fillStyle=m.flash>0?'#fff':'#20152b';g.fillRect(x-6,y-17,12,29);g.fillRect(x-8,y-23,16,10);g.fillRect(x-9,y+8,5,12);g.fillRect(x+4,y+8,5,12);g.fillStyle='#f0abfc';g.fillRect(x-5,y-19,3,2);g.fillRect(x+2,y-19,3,2);g.fillStyle='#8b5cf6';g.fillRect(x-10,y-5,2,5);g.fillRect(x+8,y+2,2,5);
+   }else{
+    const base=m.kind==='piglin'?'#b87962':dim==='nether'?'#b94732':'#3c9a4a',eye=dim==='end'?'#f0abfc':'#b7f2a4';g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x-10,y-10,20,26);g.fillStyle=m.flash>0?'#fff':base;g.fillRect(x-9,y-12,18,24);g.fillStyle=m.kind==='piglin'?'#7c493f':dim==='nether'?'#70251f':'#256b35';g.fillRect(x-11,y-12,22,6);g.fillStyle=eye;g.fillRect(x-5,y-6,3,3);g.fillRect(x+2,y-6,3,3);g.fillStyle='#253b2a';g.fillRect(x-5,y+3,10,5);
+   }
+   if(HOSTILES.has(m.kind)&&m.maxHp){g.fillStyle='#111827';g.fillRect(x-10,y-28,20,3);g.fillStyle='#fb7185';g.fillRect(x-10,y-28,20*Math.max(0,m.hp/m.maxHp),3)}
+  }
+  const sx=(px-cam.x)*TS,sy=(py-cam.y)*TS;g.fillStyle='rgba(0,0,0,.28)';g.beginPath();g.ellipse(sx,sy+11,12,5,0,0,Math.PI*2);g.fill();g.fillStyle=dim==='nether'?'#7f1d1d':dim==='end'?'#6d28d9':'#243f9e';g.fillRect(sx-10,sy-2,20,15);g.fillStyle=dim==='nether'?'#ef4444':dim==='end'?'#a78bfa':'#3977ff';g.fillRect(sx-10,sy-2,20,5);g.fillStyle='#f0c08a';g.fillRect(sx-8,sy-14,16,12);g.fillStyle='#553522';g.fillRect(sx-8,sy-15,16,4);g.fillStyle='#18202b';g.fillRect(sx-5,sy-9,3,3);g.fillRect(sx+3,sy-9,3,3);
+  if(dim==='nether'||(dim==='overworld'&&isNight())){g.fillStyle=dim==='nether'?'rgba(40,4,5,.12)':'rgba(5,8,40,.34)';g.fillRect(0,0,cv.width,cv.height)}
+  if(hurtT>0){g.fillStyle='rgba(255,0,0,.25)';g.fillRect(0,0,cv.width,cv.height)}
+  g.fillStyle='rgba(0,0,0,.65)';g.fillRect(0,0,cv.width,46);g.fillStyle='#fff';g.font='bold 12px monospace';
+  const dimName=DIMENSIONS[dim].name.toUpperCase();g.fillText(dimName+'  ·  '+N+'×'+N+' WORLD  ·  HP '+Math.ceil(hp)+'/10  ·  '+(dim==='overworld'?(isNight()?'NIGHT':'DAY'):dim==='nether'?'HOT ZONE':'VOID ZONE'),8,16);
+  g.font='10px monospace';const activeSword=bestSword();g.fillText('Pick: '+(['None','Wood','Stone','Iron','Diamond'][tier()])+' · Sword: '+(activeSword?TOOL_META.find(t=>t.id===activeSword).label+' ('+dmg()+' dmg)':'Bare hands (1 dmg)')+' · WASD move · B dimension hop',8,32);
+  const selected=HOTBAR[selectedSlot]||HOTBAR[0];
+  g.fillStyle='rgba(2,6,23,.76)';g.fillRect(0,cv.height-24,cv.width,24);
+  g.font='9px monospace';g.fillStyle='#b9f5ff';g.fillText('SELECTED: '+selected.label.toUpperCase()+' × '+(inv[selected.id]||0)+' · WHEEL / 1–5 SWITCH · LEFT MINE · RIGHT PLACE · I INVENTORY · B HOP · H HELP',8,cv.height-12);
+  if(msgT>0&&msg){g.fillStyle='rgba(0,0,0,.9)';g.fillRect(0,cv.height-54,cv.width,22);g.fillStyle='#ffd166';g.font='10px monospace';g.fillText(msg,8,cv.height-39)}
+ }
+ const pt=e=>{const r=cv.getBoundingClientRect();if(!r.width||!r.height)return null;return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
+ const worldPoint=e=>{const p=pt(e);if(!p)return null;return[p[0]/TS+cam.x,p[1]/TS+cam.y]};
+ const setHover=e=>{const point=worldPoint(e);hoverTile=point?{x:Math.floor(point[0]),y:Math.floor(point[1])}:null};
+ cv.addEventListener('pointermove',setHover);cv.addEventListener('pointerleave',()=>{hoverTile=null});
+ cv.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)selectSlot((selectedSlot+(e.deltaY>0?1:-1)+HOTBAR.length)%HOTBAR.length,true)},{passive:false});
+ cv.oncontextmenu=e=>e.preventDefault();
+ cv.onpointerdown=e=>{
+  e.preventDefault();if(!rec.alive||!e.isPrimary||(e.button!==0&&e.button!==2))return;const point=worldPoint(e);if(!point)return;const[wx,wy]=point;
+  if(e.button===2)return place(wx,wy);
+  let target=null,bd=.9;for(const m of mobs){const d=Math.hypot(m.x-wx,m.y-wy);if(d<bd){bd=d;target=m}}
+  if(target){if(Math.hypot(target.x-px,target.y-py)>MAX_REACH)return say('Too far away — move closer');const sword=bestSword();equippedSword=sword;const dealt=dmg();target.hp-=dealt;target.flash=.25;say((sword?TOOL_META.find(t=>t.id===sword).label:'Bare hands')+' · '+dealt+' damage');if(target.hp<=0){mobs=mobs.filter(m=>m!==target);if(target.kind==='cow'||target.kind==='pig'){inv.meat=(inv.meat||0)+2;say(target.kind+' defeated: +2 meat')}else if(target.kind==='enderman'){inv.ender_shard=(inv.ender_shard||0)+2;say('Enderman defeated: +2 end shards')}else if(target.kind==='blaze'){inv.quartz=(inv.quartz||0)+2;say('Blaze defeated: +2 quartz')}else if(target.kind==='piglin'){inv.gold_ingot=(inv.gold_ingot||0)+1;say('Piglin defeated: +1 gold ingot')}else if(target.kind==='skeleton'){inv.coal=(inv.coal||0)+1;say('Skeleton defeated: +1 coal')}else if(target.kind==='spider'){inv.sticks=(inv.sticks||0)+1;say('Spider defeated: +1 stick')}else{inv.coal=(inv.coal||0)+1;say('Zombie defeated: +1 coal')}save();refreshCraft()}else save();return}
+  mine(Math.floor(wx),Math.floor(wy));
+ };
+ const wrap=document.createElement('div');wrap.className='app';wrap.style.minHeight='0';wrap.style.overflow='hidden';
+ const dimbar=document.createElement('div');dimbar.className='ofc';dimbar.style.cssText='flex:0 0 auto;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px;align-items:center;';
+ const dimTitle=document.createElement('strong');dimTitle.textContent='DIMENSIONS';dimTitle.style.cssText='font-size:10px;letter-spacing:1px;color:#7dd3fc;white-space:nowrap;padding:0 4px;';dimbar.appendChild(dimTitle);
+ const dimButtons={};for(const id of Object.keys(DIMENSIONS)){const d=DIMENSIONS[id],b=document.createElement('button');b.className='t';b.textContent=d.icon+' '+d.name;b.title=d.hint;b.onclick=()=>switchDimension(id);dimbar.appendChild(b);dimButtons[id]=b;}
+ const helpBtn=document.createElement('button');helpBtn.type='button';helpBtn.className='t bs-help-button';helpBtn.textContent='📘 How to Play';helpBtn.title='Open controls, mining progression and world mechanics';dimbar.appendChild(helpBtn);
+ const tutorial=document.createElement('div');tutorial.className='bs-tutorial-panel';tutorial.hidden=true;tutorial.innerHTML='<h3>HOW TO PLAY · BLOCK SURVIVAL</h3><div class="bs-tutorial-grid"><div><strong>Move:</strong> WASD or arrow keys. <strong>Eat:</strong> press F when you have meat to restore health.</div><div><strong>Mine:</strong> left-click a nearby block. <strong>Place:</strong> right-click an empty tile. Stay within 4 blocks.</div><div><strong>Inventory:</strong> press I. Click a block item to put it in the selected hotbar slot; drag slots to swap them. Use the mouse wheel or 1–5 to select.</div><div><strong>Crafting:</strong> use the bar at the bottom. Collect wood, craft planks/sticks, then make a pickaxe and sword.</div><div><strong>Ore progression:</strong> coal needs a wooden pickaxe; iron, emerald and copper need stone; gold and diamond need an iron pickaxe. Smelt iron/gold/copper ore using coal.</div><div><strong>Combat:</strong> click an enemy nearby. The game automatically uses the strongest sword you have crafted: wood 2, stone 4, gold 5, iron 6, diamond 10 damage.</div><div><strong>Dimensions:</strong> press B to cycle Overworld → Nether → The End. Each dimension has its own large 80×80 map, ores and creatures; your inventory is shared.</div><div><strong>Mobs:</strong> cows/pigs drop meat; zombies/skeletons, spiders, blazes, piglins and endermen have different health, speed and drops. Avoid groups until you have a stronger sword.</div></div>';
+ helpBtn.onclick=()=>{helpOpen=!helpOpen;tutorial.hidden=!helpOpen;helpBtn.classList.toggle('on',helpOpen);fitCanvas()};
+ const stage=document.createElement('div');stage.style.cssText='flex:1 1 0px;min-height:120px;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#071019;';stage.appendChild(cv);
+ const fitCanvas=()=>{const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight),scale=Math.min(w/(VW*TS),h/(VH*TS));cv.style.width=Math.max(1,Math.floor(VW*TS*scale))+'px';cv.style.height=Math.max(1,Math.floor(VH*TS*scale))+'px'};
+ const hotrow=document.createElement('div');hotrow.className='bs-play-controls';
+ const hotbar=document.createElement('div');hotbar.className='bs-hotbar';hotbar.setAttribute('aria-label','Hotbar — use mouse wheel or keys 1 to 5');
+ const hotbarButtons=[],hotbarCounts=[];
+ HOTBAR.forEach((item,i)=>{const b=document.createElement('button');b.type='button';b.className='bs-slot';b.draggable=true;b.title=(i+1)+': '+item.label+' — scroll wheel to select';b.setAttribute('aria-label',item.label);b.innerHTML='<span class="bs-slot-key">'+(i+1)+'</span><span class="bs-slot-icon">'+item.icon+'</span><span class="bs-slot-name">'+item.label+'</span><span class="bs-slot-count">0</span>';b.onclick=()=>selectSlot(i,true);b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','slot:'+i);e.dataTransfer.effectAllowed='move'});b.addEventListener('dragover',e=>e.preventDefault());b.addEventListener('drop',e=>{e.preventDefault();const data=e.dataTransfer.getData('text/plain');if(data.startsWith('item:'))assignItemToSlot(i,data.slice(5),true);else if(data.startsWith('slot:'))swapHotbarSlots(i,Number(data.slice(5)))});hotbar.appendChild(b);hotbarButtons.push(b);hotbarCounts.push(b.querySelector('.bs-slot-count'))});
+ const invToggle=document.createElement('button');invToggle.type='button';invToggle.className='bs-inventory-toggle';invToggle.innerHTML='📦 Inventory <small>I to open</small>';invToggle.onclick=()=>toggleInventory();
+ hotrow.append(hotbar,invToggle);
+ const invPanel=document.createElement('div');invPanel.className='bs-inventory-panel';invPanel.hidden=true;
+ const invHead=document.createElement('div');invHead.className='bs-inventory-heading';const invTitle=document.createElement('strong');invTitle.textContent='BACKPACK';const invSubtitle=document.createElement('span');invSubtitle.textContent='Resources are shared between dimensions';invHead.append(invTitle,invSubtitle);
+ const invHint=document.createElement('p');invHint.className='bs-inventory-hint';invHint.textContent='Click a placeable material to put it in your selected hotbar slot, or drag it onto a slot. Drag hotbar slots to swap them. Mining and combat show tool requirements and damage.';
+ const invGrid=document.createElement('div');invGrid.className='bs-inventory-grid';const invCounts={},invItemCards={};
+ INV_META.forEach(([key,label,icon])=>{const item=document.createElement('div');item.className='bs-inventory-item';item.tabIndex=0;item.setAttribute('role','button');item.dataset.itemId=key;item.draggable=PLACEABLES.has(key);item.title=PLACEABLES.has(key)?'Click to assign '+label+' to selected hotbar slot; drag onto a slot':'Resource item · use it for crafting';item.innerHTML='<span class="bs-item-icon">'+icon+'</span><span class="bs-item-name">'+label+'</span><span class="bs-item-count">0</span>';invCounts[key]=item.querySelector('.bs-item-count');invItemCards[key]=item;item.addEventListener('click',()=>{if(PLACEABLES.has(key))assignItemToSlot(selectedSlot,key,true);else say(label+' is a resource for crafting, not a placeable block')});item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();item.click()}});if(PLACEABLES.has(key))item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','item:'+key);e.dataTransfer.effectAllowed='copy'});invGrid.appendChild(item)});
+ const equipHeading=document.createElement('div');equipHeading.className='bs-equipment-heading';const equipTitle=document.createElement('strong');equipTitle.textContent='TOOLS & EQUIPMENT';const equipHint=document.createElement('span');equipHint.textContent='Pickaxes can be equipped · combat auto-uses your strongest sword';equipHeading.append(equipTitle,equipHint);
+ const equipGrid=document.createElement('div');equipGrid.className='bs-equipment-grid';const equipCards={};
+ TOOL_META.forEach(tool=>{const card=document.createElement('div');card.className='bs-equipment-item';const icon=document.createElement('span');icon.className='bs-equipment-icon';icon.textContent=tool.icon;const copy=document.createElement('div');copy.className='bs-equipment-copy';const name=document.createElement('span');name.className='bs-equipment-name';name.textContent=tool.label;const status=document.createElement('span');status.className='bs-equipment-status';copy.append(name,status);const button=document.createElement('button');button.type='button';button.className='t';button.textContent='Not crafted';button.disabled=true;button.onclick=()=>equipTool(tool.id);card.append(icon,copy,button);equipGrid.appendChild(card);equipCards[tool.id]={card,status,button}});
+ const invTools=document.createElement('div');invTools.className='bs-inventory-tools';const invToolText=document.createElement('span');const invHealth=document.createElement('span');invTools.append(invToolText,invHealth);invPanel.append(invHead,invHint,invGrid,equipHeading,equipGrid,invTools);
+ const bar=document.createElement('div');bar.className='bs-craftbar';const craftLabel=document.createElement('span');craftLabel.className='bs-craft-label';craftLabel.textContent='CRAFT';bar.appendChild(craftLabel);
+ const btns=RECIPES.map(r=>{const b=document.createElement('button');b.className='t';b.textContent=r.n;b.title='Craft '+r.n+' · Costs: '+Object.entries(r.c).map(([k,v])=>v+' '+k.replace('_',' ')).join(', ');b.onclick=()=>craftIt(r);bar.appendChild(b);return b});
+ function selectSlot(index,announce){selectedSlot=(index+HOTBAR.length)%HOTBAR.length;placeMode=HOTBAR[selectedSlot].id;refreshHotbar();refreshInventory();if(announce)say('Selected '+HOTBAR[selectedSlot].label+' × '+(inv[placeMode]||0))}
+ function assignItemToSlot(index,itemId,announce){
+  if(!PLACEABLES.has(itemId)||!ITEM_META[itemId])return say('Only placeable blocks can go in the hotbar; tools are equipped below');
+  index=Math.max(0,Math.min(HOTBAR.length-1,Number(index)||0));const meta=ITEM_META[itemId];HOTBAR[index]={id:itemId,label:meta.label,icon:meta.icon};
+  if(selectedSlot===index)placeMode=itemId;
+  refreshHotbar();refreshInventory();save();if(announce)say('Hotbar slot '+(index+1)+' set to '+meta.label);
+ }
+ function swapHotbarSlots(a,b){if(!Number.isInteger(b)||b<0||b>=HOTBAR.length||a===b)return;[HOTBAR[a],HOTBAR[b]]=[HOTBAR[b],HOTBAR[a]];placeMode=HOTBAR[selectedSlot].id;refreshHotbar();refreshInventory();save();say('Hotbar slots swapped')}
+ function equipTool(id){const tool=TOOL_META.find(t=>t.id===id);if(!tool||!tools[id])return say('Craft '+(tool?tool.label:'this tool')+' first');if(tool.kind==='pick'){equippedPick=id;save();refreshCraft();say('Equipped '+tool.label)}else{equippedSword=bestSword();save();refreshCraft();say('Combat auto-uses '+TOOL_META.find(t=>t.id===equippedSword).label+' ('+dmg()+' damage)')}}
+ function refreshHotbar(){HOTBAR.forEach((item,i)=>{const b=hotbarButtons[i];if(!b)return;b.querySelector('.bs-slot-icon').textContent=item.icon;b.querySelector('.bs-slot-name').textContent=item.label;b.classList.toggle('selected',i===selectedSlot);b.setAttribute('aria-pressed',String(i===selectedSlot));b.setAttribute('aria-label',item.label);b.title=(i+1)+': '+item.label+' — '+(inv[item.id]||0)+' available; drag to swap or use mouse wheel';hotbarCounts[i].textContent=String(inv[item.id]||0)});}
+ function refreshInventory(){
+  for(const[key,node]of Object.entries(invCounts))node.textContent=String(inv[key]||0);
+  for(const [key,card] of Object.entries(invItemCards)){const onbar=HOTBAR.some(item=>item.id===key);card.classList.toggle('on-hotbar',onbar);card.title=PLACEABLES.has(key)?'Click to assign '+ITEM_META[key].label+' to selected hotbar slot, or drag it there'+(onbar?' · already on hotbar':''):'Resource item · use it for crafting';}
+  for(const tool of TOOL_META){const ui=equipCards[tool.id],owned=!!tools[tool.id],equipped=tool.kind==='pick'?equippedPick===tool.id:bestSword()===tool.id;ui.status.textContent=!owned?'Not crafted yet':tool.kind==='sword'?(equipped?'AUTO-USED · '+SWORD_DAMAGE[tool.id]+' DAMAGE':'Owned · '+SWORD_DAMAGE[tool.id]+' damage'):(equipped?'EQUIPPED':'Crafted pickaxe');ui.button.disabled=!owned||equipped;ui.button.textContent=!owned?'Craft below':tool.kind==='sword'?(equipped?'Strongest':'Owned'):(equipped?'Equipped':'Equip');ui.card.style.borderColor=equipped?'#50d6a0':'#ffffff14';}
+  const pick=equippedPick?TOOL_META.find(t=>t.id===equippedPick)?.label:'No pickaxe';const sword=bestSword()?TOOL_META.find(t=>t.id===bestSword()).label+' ('+dmg()+' damage)':'Bare hands (1 damage)';invToolText.textContent='Pickaxe: '+pick+' · Combat sword: '+sword;invHealth.textContent='♥ Health '+Math.ceil(hp)+'/10';invToggle.classList.toggle('on',inventoryOpen);invToggle.querySelector('small').textContent=inventoryOpen?'Click to close':'I to open';
+ }
+ function toggleInventory(){inventoryOpen=!inventoryOpen;invPanel.hidden=!inventoryOpen;refreshInventory();fitCanvas()}
+ const refreshCraft=()=>{RECIPES.forEach((r,i)=>{btns[i].disabled=!canCraft(r)});Object.entries(dimButtons).forEach(([id,b])=>{b.classList.toggle('on',id===dim);b.setAttribute('aria-pressed',String(id===dim))});dimTitle.textContent='80×80 DIMENSIONS · '+DIMENSIONS[dim].name.toUpperCase()+' · B TO HOP';refreshHotbar();refreshInventory()};
+ function switchDimension(next){if(!DIMENSIONS[next]||next===dim)return;save();dim=next;if(!restoreState(states[dim])){generateWorld(dim);states[dim]=snapshot()}say('Entered '+DIMENSIONS[dim].name);save();refreshCraft()}
+ function hopDimension(){const order=['overworld','nether','end'];switchDimension(order[(order.indexOf(dim)+1)%order.length])}
+ wrap.append(dimbar,tutorial,stage,hotrow,invPanel,bar);body.appendChild(wrap);
+ fitCanvas();if(typeof ResizeObserver!=='undefined'){const ro=new ResizeObserver(()=>fitCanvas());ro.observe(stage);ro.observe(wrap);rec.onClose=()=>{save();ro.disconnect()}}else addEventListener('resize',fitCanvas);
+ hotbar.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)selectSlot((selectedSlot+(e.deltaY>0?1:-1)+HOTBAR.length)%HOTBAR.length,true)},{passive:false});
+ const onSurvivalKey=e=>{if(focused!==rec||e.repeat||e.altKey||e.ctrlKey||e.metaKey)return;const t=e.target;if(t&&(['INPUT','TEXTAREA','SELECT'].includes(t.tagName)||t.isContentEditable))return;const m=/^Digit([1-5])$/.exec(e.code);if(m){selectSlot(Number(m[1])-1,false);e.preventDefault()}else if(e.code==='KeyI'){toggleInventory();e.preventDefault()}else if(e.code==='KeyB'){hopDimension();e.preventDefault()}else if(e.code==='KeyH'){helpOpen=!helpOpen;tutorial.hidden=!helpOpen;helpBtn.classList.toggle('on',helpOpen);fitCanvas();e.preventDefault()}};
+ addEventListener('keydown',onSurvivalKey);
+ if(!loadSaved()){
+  inv={...DEFAULT_INV};tools={};equippedPick='';equippedSword='';hp=10;dim='overworld';generateWorld(dim);states.overworld=snapshot();
+ }else if(!states[dim])states[dim]=snapshot();
+ if(!equippedPick||!tools[equippedPick])equippedPick=bestPick();
+ if(!equippedSword||!tools[equippedSword]||!tools[bestSword()])equippedSword=bestSword();
+ selectedSlot=Math.max(0,HOTBAR.findIndex(item=>item.id===placeMode));
+ refreshCraft();
+ const priorClose=rec.onClose;rec.onClose=()=>{save();removeEventListener('keydown',onSurvivalKey);if(typeof priorClose==='function')priorClose()};
+ let lastT=performance.now(),cT=0,sT=0;
+ loop(rec,()=>{const now=performance.now(),dt=Math.min(.05,Math.max(0,(now-lastT)/1000));lastT=now;if(focused===rec)update(dt,rec.keys);draw();sT+=dt;cT+=dt;if(sT>4){sT=0;save()}if(cT>.25){cT=0;refreshCraft()}});
+}
+</script>
+</body>
+</html>
